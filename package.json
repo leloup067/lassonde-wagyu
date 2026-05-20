@@ -1,0 +1,27 @@
+{
+  "name": "claude",
+  "version": "1.0.0",
+  "description": "> Wagyu certifié Halal du Québec. Présence digitale complète pour le seul éleveur québécois positionné explicitement sur le marché Halal premium.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.97.1",
+    "better-sqlite3": "^12.10.0",
+    "csv-parser": "^3.2.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pdfkit": "^0.18.0",
+    "sharp": "^0.34.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

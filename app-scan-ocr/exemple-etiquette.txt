@@ -1,0 +1,138 @@
+================================================================
+EXEMPLES D'ÉTIQUETTES — Les Élevages Lassonde · Wagyu Halal
+================================================================
+Ces exemples sont fictifs mais réalistes.
+Ils servent à tester l'app sans avoir une vraie étiquette sous la main.
+Pour tester : imprimez ou affichez ce fichier sur un écran secondaire
+et pointez la caméra dessus.
+================================================================
+
+
+=== EXEMPLE 1 : FAUX-FILET (STRIPLOIN) ===
+
+        LES ÉLEVAGES LASSONDE
+     WAGYU HALAL | CERTIFIÉ FAMBRAS
+     ────────────────────────────────
+
+   FAUX-FILET / STRIPLOIN
+   Code produit : 1001-FF-WGY
+   Lot / Batch  : 2024-11-08-A
+
+   Poids net / Net weight :   0.823 kg / 1.814 lb
+   Prix / Price :            89.24 $/kg
+   Total :                   73.44 $
+
+   Emballé le / Packed on :  2024-11-08
+   Meilleur avant / Best before : 2024-11-14
+
+   Conserver réfrigéré / Keep refrigerated (0°C – 4°C)
+   Ne pas recongeler / Do not refreeze
+
+   Halal ✓  |  FAMBRAS Certified  |  Québec, Canada
+
+────────────────────────────────────────────────────────────────
+
+
+=== EXEMPLE 2 : FILET MIGNON (TENDERLOIN) ===
+
+        LES ÉLEVAGES LASSONDE
+     WAGYU HALAL | CERTIFIÉ FAMBRAS
+     ────────────────────────────────
+
+   FILET MIGNON / TENDERLOIN
+   Code produit : 2002-FM-WGY
+   Lot / Batch  : 2024-11-09-B
+
+   Poids net / Net weight :   0.412 kg / 0.908 lb
+   Prix / Price :           139.99 $/kg
+   Total :                   57.68 $
+
+   Emballé le / Packed on :  2024-11-09
+   Meilleur avant / Best before : 2024-11-15
+
+   Conserver réfrigéré / Keep refrigerated (0°C – 4°C)
+   Sous vide — Vacuum sealed
+
+   Halal ✓  |  FAMBRAS Certified  |  Québec, Canada
+   Grade : BMS 8-9
+
+────────────────────────────────────────────────────────────────
+
+
+=== EXEMPLE 3 : TOMAHAWK ===
+
+        LES ÉLEVAGES LASSONDE
+     WAGYU HALAL | CERTIFIÉ FAMBRAS
+     ────────────────────────────────
+
+   TOMAHAWK WAGYU
+   Code produit : 3003-TK-WGY
+   Lot / Batch  : 2024-11-07-C
+
+   Poids net / Net weight :   1.247 kg / 2.749 lb
+   Prix / Price :            95.00 $/kg
+   Total :                  118.47 $
+
+   Emballé le / Packed on :  2024-11-07
+   Meilleur avant / Best before : 2024-11-13
+
+   Inclut l'os / Bone-in cut
+   Conserver réfrigéré / Keep refrigerated (0°C – 4°C)
+
+   Halal ✓  |  FAMBRAS Certified  |  Québec, Canada
+   Parfait pour le BBQ / Perfect for the grill
+
+────────────────────────────────────────────────────────────────
+
+
+=== EXEMPLE 4 : BOEUF HACHÉ WAGYU (GROUND BEEF) ===
+
+        LES ÉLEVAGES LASSONDE
+     WAGYU HALAL | CERTIFIÉ FAMBRAS
+     ────────────────────────────────
+
+   BOEUF HACHÉ WAGYU / GROUND WAGYU BEEF
+   Maigre / Lean : 80 % · Gras / Fat : 20 %
+   Code produit : 4004-BH-WGY
+   Lot / Batch  : 2024-11-10-A
+
+   Poids net / Net weight :   0.500 kg / 1.102 lb
+   Prix / Price :            45.00 $/kg
+   Total :                   22.50 $
+
+   Emballé le / Packed on :  2024-11-10
+   Meilleur avant / Best before : 2024-11-13
+
+   CUIRE À FOND / COOK THOROUGHLY — Temp. interne / internal : 71°C / 160°F
+   Conserver réfrigéré ou congeler / Refrigerate or freeze
+
+   Halal ✓  |  FAMBRAS Certified  |  Québec, Canada
+   Idéal pour burgers, sauce bolognaise
+
+────────────────────────────────────────────────────────────────
+
+
+================================================================
+NOTES POUR LE TEST
+================================================================
+
+Pour simuler un scan avec cette fiche :
+
+1. Ouvrez ce fichier sur un second écran ou imprimez-le
+2. Lancez l'app dans Chrome (avec HTTPS ou via localhost)
+3. Pointez la caméra vers l'un des blocs d'étiquette ci-dessus
+4. Assurez-vous que le texte est net et bien éclairé
+5. Appuyez sur le bouton rouge pour capturer
+
+Claude devrait extraire automatiquement :
+- Le nom de la coupe (ex : "Faux-Filet")
+- Le code produit (ex : "1001-FF-WGY")
+- Le poids en kg et en lb
+- Le prix au kg et le total
+- Les dates d'emballage et meilleur avant
+
+Si la reconnaissance est imparfaite, essayez :
+- Améliorer l'éclairage
+- Rapprocher la caméra
+- Nettoyer l'objectif du téléphone
+================================================================

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <!-- Encodage des caractères : permet d'afficher les accents correctement -->
+  <meta charset="UTF-8" />
+
+  <!-- Viewport mobile : adapte l'affichage à la taille de l'écran du téléphone -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+  <!-- Titre qui apparaît dans l'onglet du navigateur -->
+  <title>Scan Étiquette Lassonde</title>
+
+  <!-- Lien vers la feuille de style -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       EN-TÊTE : logo et titre de l'application
+  ============================================================ -->
+  <header class="app-header">
+    <!-- Icône unicode qui ressemble à un scanner / étiquette -->
+    <div class="header-logo" aria-label="Logo scanner">🥩</div>
+    <div class="header-text">
+      <h1 class="header-title">Scan Étiquette</h1>
+      <p class="header-subtitle">Les Élevages Lassonde · Wagyu</p>
+    </div>
+    <!-- Bouton d'accès aux paramètres (clé API) -->
+    <button class="btn-settings" id="btn-open-settings" aria-label="Paramètres">
+      ⚙️
+    </button>
+  </header>
+
+  <!-- ============================================================
+       CONTENU PRINCIPAL
+  ============================================================ -->
+  <main class="app-main">
+
+    <!-- ----------------------------------------------------------
+         SECTION CAMÉRA
+         Visible par défaut — l'utilisateur pointe la caméra
+         vers l'étiquette puis appuie sur le bouton.
+    ---------------------------------------------------------- -->
+    <section class="section-camera" id="section-camera">
+
+      <!-- Zone d'aperçu de la caméra (flux vidéo en direct) -->
+      <div class="camera-wrapper">
+        <video
+          id="camera-preview"
+          autoplay
+          playsinline
+          muted
+          aria-label="Aperçu caméra"
+        ></video>
+
+        <!-- Cadre visuel pour aider à centrer l'étiquette -->
+        <div class="camera-frame" aria-hidden="true">
+          <span class="frame-corner frame-tl"></span>
+          <span class="frame-corner frame-tr"></span>
+          <span class="frame-corner frame-bl"></span>
+          <span class="frame-corner frame-br"></span>
+        </div>
+
+        <!-- Message si la caméra n'est pas encore active -->
+        <div class="camera-placeholder" id="camera-placeholder">
+          <span class="placeholder-icon">📷</span>
+          <p>Chargement de la caméra…</p>
+        </div>
+      </div>
+
+      <!-- Instruction courte sous la caméra -->
+      <p class="camera-hint">Centrez l'étiquette dans le cadre</p>
+
+      <!-- Grand bouton rond rouge pour prendre la photo -->
+      <button class="btn-capture" id="btn-capture" aria-label="Prendre une photo" disabled>
+        <span class="btn-capture-inner"></span>
+      </button>
+
+    </section>
+
+    <!-- ----------------------------------------------------------
+         CANVAS CACHÉ
+         Utilisé par JavaScript pour capturer un frame de la vidéo
+         et le convertir en image. L'utilisateur ne le voit pas.
+    ---------------------------------------------------------- -->
+    <canvas id="capture-canvas" style="display:none;"></canvas>
+
+    <!-- ----------------------------------------------------------
+         SECTION RÉSULTATS
+         Cachée par défaut. Apparaît après l'analyse de l'étiquette.
+    ---------------------------------------------------------- -->
+    <section class="section-results" id="section-results" hidden>
+
+      <!-- === LOADER : visible pendant que Claude analyse l'image === -->
+      <div class="loader-wrapper" id="loader-wrapper">
+        <div class="spinner" aria-label="Analyse en cours"></div>
+        <p class="loader-text">Analyse de l'étiquette…<br><span class="loader-subtext">Claude Vision est en train de lire</span></p>
+      </div>
+
+      <!-- === CARTE DES RÉSULTATS : visible une fois l'analyse terminée === -->
+      <div class="results-card" id="results-card" hidden>
+
+        <h2 class="results-title">Données extraites</h2>
+
+        <!-- Tableau des informations de l'étiquette -->
+        <table class="data-table" aria-label="Données de l'étiquette">
+          <tbody>
+            <tr>
+              <td class="data-label">Type de coupe</td>
+              <td class="data-value" id="val-coupe">—</td>
+            </tr>
+            <tr>
+              <td class="data-label">Code produit</td>
+              <td class="data-value" id="val-code">—</td>
+            </tr>
+            <tr>
+              <td class="data-label">Poids</td>
+              <td class="data-value" id="val-poids">—</td>
+            </tr>
+            <tr>
+              <td class="data-label">Prix / kg</td>
+              <td class="data-value" id="val-prix-kg">—</td>
+            </tr>
+            <tr>
+              <td class="data-label">Prix total</td>
+              <td class="data-value" id="val-prix-total">—</td>
+            </tr>
+            <tr>
+              <td class="data-label">Date d'emballage</td>
+              <td class="data-value" id="val-date-emballage">—</td>
+            </tr>
+            <tr>
+              <td class="data-label">Meilleur avant</td>
+              <td class="data-value" id="val-meilleur-avant">—</td>
+            </tr>
+            <tr>
+              <td class="data-label">Notes</td>
+              <td class="data-value" id="val-notes">—</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Message d'erreur (caché par défaut) -->
+        <div class="error-box" id="error-box" hidden>
+          <span class="error-icon">⚠️</span>
+          <p class="error-text" id="error-text"></p>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="results-actions">
+          <button class="btn-confirm" id="btn-confirm">
+            ✓ Confirmer et enregistrer
+          </button>
+          <button class="btn-restart" id="btn-restart">
+            ↩ Recommencer
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------
+         SECTION LOG (entrées confirmées)
+         Collapsible — l'utilisateur peut l'ouvrir/fermer.
+         Affiche toutes les entrées sauvegardées dans la session.
+    ---------------------------------------------------------- -->
+    <section class="section-log" id="section-log">
+      <!-- Bouton pour ouvrir/fermer le log -->
+      <button class="log-toggle" id="log-toggle" aria-expanded="false">
+        <span class="log-toggle-label">Entrées enregistrées</span>
+        <span class="log-count badge" id="log-count">0</span>
+        <span class="log-chevron" aria-hidden="true">▾</span>
+      </button>
+
+      <!-- Contenu du log (liste des scans confirmés) -->
+      <div class="log-content" id="log-content" hidden>
+        <p class="log-empty" id="log-empty">Aucune entrée pour l'instant.</p>
+        <ul class="log-list" id="log-list" aria-label="Liste des entrées enregistrées"></ul>
+
+        <!-- Bouton pour effacer tout le log -->
+        <button class="btn-clear-log" id="btn-clear-log">
+          🗑 Effacer tout
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================
+       MODAL DE CONFIGURATION (clé API)
+       S'ouvre quand l'utilisateur clique sur ⚙️
+  ============================================================ -->
+  <div class="modal-overlay" id="modal-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <h2 class="modal-title" id="modal-title">⚙️ Paramètres</h2>
+
+      <label class="modal-label" for="input-api-key">
+        Clé API Anthropic
+        <span class="modal-hint">Trouvez-la sur <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></span>
+      </label>
+      <input
+        class="modal-input"
+        type="password"
+        id="input-api-key"
+        placeholder="sk-ant-api03-…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+
+      <label class="modal-label" for="select-model">
+        Modèle Claude
+      </label>
+      <select class="modal-select" id="select-model">
+        <option value="claude-opus-4-5">claude-opus-4-5 (recommandé)</option>
+        <option value="claude-sonnet-4-6">claude-sonnet-4-6 (rapide)</option>
+      </select>
+
+      <div class="modal-actions">
+        <button class="btn-save-settings" id="btn-save-settings">
+          Enregistrer
+        </button>
+        <button class="btn-close-modal" id="btn-close-modal">
+          Annuler
+        </button>
+      </div>
+
+      <!-- Message de confirmation de sauvegarde -->
+      <p class="settings-saved-msg" id="settings-saved-msg" hidden>
+        ✓ Paramètres enregistrés !
+      </p>
+    </div>
+  </div>
+
+  <!-- Lien vers le script JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>
