@@ -415,6 +415,16 @@ QUAND UTILISER LA RECHERCHE WEB :
   }
 });
 
+// ─── CONTEXT.md — pour agent CLI et outils externes ─────────────────────────
+app.get('/api/context', (req, res) => {
+  try {
+    const context = fs.readFileSync(path.join(__dirname, 'CONTEXT.md'), 'utf8');
+    res.json({ ok: true, context });
+  } catch (e) {
+    res.status(404).json({ ok: false, error: 'CONTEXT.md introuvable' });
+  }
+});
+
 // ─── APP HTML (injection credentials) ────────────────────────────────────────
 app.get('/', (req, res) => {
   try {

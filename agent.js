@@ -9,6 +9,7 @@ const path     = require('path');
 const https    = require('https');
 
 const BRAIN_PATH    = path.join(__dirname, 'BRAIN.md');
+const CONTEXT_PATH  = path.join(__dirname, 'CONTEXT.md');
 const CLAUDE_MODEL  = 'claude-opus-4-5';
 let   dbModule      = null;
 try   { dbModule = require('./database'); } catch (_) {}
@@ -217,8 +218,15 @@ const chatHistory = [];
 
 async function answerQuestion(input, brain) {
   const snap = dbSnapshot();
+
+  // Charge CONTEXT.md condensé si disponible (économie de tokens)
+  let contextCondense = '';
+  try {
+    contextCondense = fs.readFileSync(CONTEXT_PATH, 'utf8');
+  } catch (_) { /* CONTEXT.md optionnel */ }
+
   const system = `Tu es l'agent IA stratégique du projet Lassonde Wagyu Halal.
-Tu connais tout le projet via BRAIN.md et la base de données locale en temps réel.
+Tu connais tout le projet via CONTEXT.md et BRAIN.md. Tu as accès à la DB en temps réel.
 Tu réponds en français québécois, direct, sans bullshit.
 Sois concis mais complet. Utilise des listes quand c'est plus clair.
 
@@ -227,7 +235,10 @@ RÈGLE ABSOLUE : termine TOUJOURS par une ligne vide puis :
 
 ${snap}
 
-BRAIN.md :
+CONTEXT (condensé) :
+${contextCondense || '(non disponible)'}
+
+BRAIN.md (complet) :
 ${brain}`;
 
   chatHistory.push({ role:'user', content:input });
