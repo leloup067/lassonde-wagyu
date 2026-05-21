@@ -184,7 +184,79 @@ vendez, sans stress, sans rush."
 - Ne jamais laisser Claude assumer l'année — date injectée dynamiquement à chaque appel /api/agent
 - Timezone : America/Toronto (heure de Montréal)
 
+## CATALOGUE COMPLET — 44 PRODUITS
+Source : Session 20 mai 2026 — validé avec étiquettes réelles
+
+| Catégorie | Coupe | $/kg |
+|---|---|---|
+| Ultra Premium | Filet Mignon | 241.99 |
+| Ultra Premium | Tomahawk | 149.99 |
+| Ultra Premium | Faux-Filet | 149.99 |
+| Ultra Premium | Contre-Filet | 149.99 |
+| Ultra Premium | Steak de Côte | 119.99 |
+| Ultra Premium | T-Bone | 119.99 |
+| Premium | Onglet | 104.49 |
+| Premium | Hampe | 104.49 |
+| Premium | Picanha (Culotte) | 104.49 |
+| Premium | Macreuse | 89.99 |
+| Premium | Araignée | 89.99 |
+| Steaks | Surlonge | 76.99 |
+| Steaks | Steak Français | 76.99 |
+| Steaks | Baseball | 76.99 |
+| Steaks | Tri-Tip | 76.99 |
+| Steaks | Denver | 76.99 |
+| Steaks | Flanc | 76.99 |
+| Steaks | Faux-Filet Palette | 65.99 |
+| BBQ | Brisket | 54.99 |
+| BBQ | Tournedos | 54.99 |
+| BBQ | Côtes Levées | 49.99 |
+| BBQ | Osso Buco | 44.99 |
+| BBQ | Short Ribs (Côte Coréenne) | 39.99 |
+| Rôtis | Rôti Français | 65.99 |
+| Rôtis | Palette sans os | 54.99 |
+| Rôtis | Palette avec os | 49.99 |
+| Préparé | Brochettes Teriyaki | 54.99 |
+| Préparé | Brochettes Érable/Poivre | 54.99 |
+| Préparé | Brochettes Whiskey Fumé | 54.99 |
+| Préparé | Brochettes nature | 49.99 |
+| Préparé | Burger Wagyu | 33.99 |
+| Préparé | Haché Wagyu | 33.99 |
+| Accessible | Bacon de Boeuf | 69.99 |
+| Accessible | Mi Soter | 29.99 |
+| Accessible | 1023 | 29.99 |
+| Accessible | Marteau Thor (jarret) | 24.99 |
+| Abats | Joue | 24.99 |
+| Abats | Coeur | 19.99 |
+| Abats | Langue | 19.99 |
+| Abats | Queue | 19.99 |
+| Abats | Foie | 14.99 |
+| Abats | Rognon | 14.99 |
+| Abats | Os à Moelle | 14.99 |
+| Abats | Os à Soupe | 9.89 |
+
+### CALCUL VALEUR PAR BŒUF (350 kg utilisable)
+- Revenu brut estimé : ~24 216$/bœuf
+- 6 bœufs/an = ~145 296$/an aux prix actuels
+- Avec plateforme +15% = ~167 090$/an
+- Avec plateforme +25% = ~181 620$/an
+- Différentiel annuel potentiel : +21 794$ à +36 324$
+- **Prix le plus haut : Filet Mignon 241.99$/kg**
+- **Prix le plus bas : Os à Soupe 9.89$/kg**
+- Spread : 24× entre max et min
+- Prix moyen pondéré : ~67$/kg
+
+### SUSPICION PRIX
+- Short Ribs C-1528 à 39.99$/kg — marché international : 110-150$ USD/kg → sous-évalué ou erreur boucher
+- Code "1023" à 29.99$/kg — produit inconnu, découpe à identifier
+- Marteau Thor (jarret) à 24.99$/kg — découpe exacte à confirmer
+
+### À CLARIFIER AVEC LASSONDE
+- Code "1023" — qu'est-ce que c'est exactement?
+- Marteau Thor — quelle coupe précise?
+- Prix figés par le boucher ou mis à jour à chaque bête?
+
 ## CHANGELOG
 - 2026-05-19 14 h 40 — [RÉALITÉ OPÉRATIONNELLE] Ajout coût d'élevage par bœuf (4000$), question #4 marquée répondue
 - 2026-05-19 18 h 47 — [STACK TECHNIQUE] Diagnostic : 11 collections confirmées, Railway URL ajoutée, server.js /health + CORS ajoutés
 - 2026-05-19 19 h 08 — [STACK TECHNIQUE] Base SQLite créée : inventaire + bêtes + ventes + prix_marche. Agent lit DB en temps réel. Tab Stock → /api/inventaire.
+- 2026-05-20 — [CATALOGUE] 44 produits insérés dans prix_marche avec catégories. Colonne `categorie` ajoutée à prix_marche. Agent enrichi avec catalogue complet + calcul valeur bœuf.

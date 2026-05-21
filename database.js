@@ -51,28 +51,98 @@ db.exec(`
     coupe      TEXT NOT NULL,
     concurrent TEXT NOT NULL,
     prix_kg    REAL NOT NULL,
-    date_maj   TEXT DEFAULT (datetime('now','localtime'))
+    categorie  TEXT DEFAULT 'Autre',
+    date_maj   TEXT DEFAULT (date('now'))
   );
 `);
 
-// ─── SEED : PRIX MARCHÉ ───────────────────────────────────────────────────────
-const seedPrixMarche = db.prepare(
-  'INSERT OR IGNORE INTO prix_marche (id, coupe, concurrent, prix_kg) VALUES (?,?,?,?)'
-);
-const seedData = [
-  [1,  'Short Ribs',        'Westmount',           39.99],
-  [2,  'Short Ribs',        'Westmount (promo)',    29.99],
-  [3,  'Boeuf Haché Wagyu', 'Lassonde',            33.99],
-  [4,  'Bacon de Boeuf',    'Lassonde',            69.99],
-  [5,  'Steak Français',    'Lassonde',            76.99],
-  [6,  'Faux-Filet',        'Lassonde',           149.99],
-  [7,  'Tomahawk',          'Lassonde',           149.99],
-  [8,  'Culotte Picanha',   'Lassonde',           104.49],
-  [9,  'Steak de Côte',     'Lassonde',           119.99],
-  [10, 'Viande à Fondue',   'Lassonde',            77.99],
+// Migration : ajouter categorie si colonne absente (DB existante)
+try {
+  db.exec(`ALTER TABLE prix_marche ADD COLUMN categorie TEXT DEFAULT 'Autre'`);
+} catch (_) { /* colonne existe déjà */ }
+
+// ─── SEED : CATALOGUE COMPLET LASSONDE — 44 PRODUITS ────────────────────────
+const prixLassonde = [
+  // ULTRA PREMIUM
+  { coupe: 'Filet Mignon',          prix_kg: 241.99, categorie: 'Ultra Premium' },
+  { coupe: 'Tomahawk',              prix_kg: 149.99, categorie: 'Ultra Premium' },
+  { coupe: 'Faux-Filet',            prix_kg: 149.99, categorie: 'Ultra Premium' },
+  { coupe: 'Contre-Filet',          prix_kg: 149.99, categorie: 'Ultra Premium' },
+  { coupe: 'Steak de Côte',         prix_kg: 119.99, categorie: 'Ultra Premium' },
+  { coupe: 'T-Bone',                prix_kg: 119.99, categorie: 'Ultra Premium' },
+  // PREMIUM
+  { coupe: 'Onglet',                prix_kg: 104.49, categorie: 'Premium' },
+  { coupe: 'Hampe',                 prix_kg: 104.49, categorie: 'Premium' },
+  { coupe: 'Picanha (Culotte)',      prix_kg: 104.49, categorie: 'Premium' },
+  { coupe: 'Macreuse',              prix_kg:  89.99, categorie: 'Premium' },
+  { coupe: 'Araignée',              prix_kg:  89.99, categorie: 'Premium' },
+  // STEAKS & GRILL
+  { coupe: 'Surlonge',              prix_kg:  76.99, categorie: 'Steaks' },
+  { coupe: 'Steak Français',        prix_kg:  76.99, categorie: 'Steaks' },
+  { coupe: 'Baseball',              prix_kg:  76.99, categorie: 'Steaks' },
+  { coupe: 'Tri-Tip',               prix_kg:  76.99, categorie: 'Steaks' },
+  { coupe: 'Denver',                prix_kg:  76.99, categorie: 'Steaks' },
+  { coupe: 'Flanc',                 prix_kg:  76.99, categorie: 'Steaks' },
+  { coupe: 'Faux-Filet Palette',    prix_kg:  65.99, categorie: 'Steaks' },
+  // BBQ & SLOW COOK
+  { coupe: 'Brisket',               prix_kg:  54.99, categorie: 'BBQ' },
+  { coupe: 'Tournedos',             prix_kg:  54.99, categorie: 'BBQ' },
+  { coupe: 'Côtes Levées',          prix_kg:  49.99, categorie: 'BBQ' },
+  { coupe: 'Osso Buco',             prix_kg:  44.99, categorie: 'BBQ' },
+  { coupe: 'Short Ribs (Côte Coréenne)', prix_kg: 39.99, categorie: 'BBQ' },
+  // RÔTIS
+  { coupe: 'Rôti Français',         prix_kg:  65.99, categorie: 'Rôtis' },
+  { coupe: 'Palette sans os',       prix_kg:  54.99, categorie: 'Rôtis' },
+  { coupe: 'Palette avec os',       prix_kg:  49.99, categorie: 'Rôtis' },
+  // BROCHETTES & PRÉPARÉ
+  { coupe: 'Brochettes Teriyaki',       prix_kg: 54.99, categorie: 'Préparé' },
+  { coupe: 'Brochettes Érable/Poivre',  prix_kg: 54.99, categorie: 'Préparé' },
+  { coupe: 'Brochettes Whiskey Fumé',   prix_kg: 54.99, categorie: 'Préparé' },
+  { coupe: 'Brochettes nature',         prix_kg: 49.99, categorie: 'Préparé' },
+  { coupe: 'Burger Wagyu',              prix_kg: 33.99, categorie: 'Préparé' },
+  { coupe: 'Haché Wagyu',              prix_kg: 33.99, categorie: 'Préparé' },
+  // ACCESSIBLE
+  { coupe: 'Bacon de Boeuf',        prix_kg:  69.99, categorie: 'Accessible' },
+  { coupe: 'Bacon Bœuf Épices',     prix_kg:  69.99, categorie: 'Accessible' },
+  { coupe: 'Mi Soter',              prix_kg:  29.99, categorie: 'Accessible' },
+  { coupe: '1023',                  prix_kg:  29.99, categorie: 'Accessible' },
+  { coupe: 'Marteau Thor (jarret)', prix_kg:  24.99, categorie: 'Accessible' },
+  // ABATS & SPÉCIALITÉS
+  { coupe: 'Coeur',                 prix_kg:  19.99, categorie: 'Abats' },
+  { coupe: 'Joue',                  prix_kg:  24.99, categorie: 'Abats' },
+  { coupe: 'Langue',                prix_kg:  19.99, categorie: 'Abats' },
+  { coupe: 'Queue',                 prix_kg:  19.99, categorie: 'Abats' },
+  { coupe: 'Foie',                  prix_kg:  14.99, categorie: 'Abats' },
+  { coupe: 'Rognon',                prix_kg:  14.99, categorie: 'Abats' },
+  { coupe: 'Os à Moelle',           prix_kg:  14.99, categorie: 'Abats' },
+  { coupe: 'Os à Soupe',            prix_kg:   9.89, categorie: 'Abats' },
 ];
-const seedTx = db.transaction(() => seedData.forEach(row => seedPrixMarche.run(...row)));
-seedTx();
+
+// Concurrents connus
+const prixConcurrents = [
+  { coupe: 'Short Ribs', concurrent: 'Westmount',         prix_kg: 39.99, categorie: 'BBQ' },
+  { coupe: 'Short Ribs', concurrent: 'Westmount (promo)', prix_kg: 29.99, categorie: 'BBQ' },
+];
+
+const insertPrix = db.prepare(`
+  INSERT INTO prix_marche (coupe, concurrent, prix_kg, categorie, date_maj)
+  VALUES (?, ?, ?, ?, date('now'))
+`);
+
+db.transaction(() => {
+  // Reset uniquement les prix Lassonde (garde les concurrents existants)
+  db.prepare(`DELETE FROM prix_marche WHERE concurrent = 'Lassonde'`).run();
+  prixLassonde.forEach(p => insertPrix.run(p.coupe, 'Lassonde', p.prix_kg, p.categorie));
+
+  // Concurrents — insert or ignore
+  const insertConc = db.prepare(`
+    INSERT OR IGNORE INTO prix_marche (coupe, concurrent, prix_kg, categorie, date_maj)
+    VALUES (?, ?, ?, ?, date('now'))
+  `);
+  prixConcurrents.forEach(p => insertConc.run(p.coupe, p.concurrent, p.prix_kg, p.categorie));
+})();
+
+console.log(`✅ ${prixLassonde.length} prix Lassonde chargés dans prix_marche`);
 
 // ─── INVENTAIRE ──────────────────────────────────────────────────────────────
 const stmtInsertSac = db.prepare(`

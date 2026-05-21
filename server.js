@@ -320,11 +320,29 @@ app.post('/api/agent', async (req, res) => {
       FROM inventaire WHERE statut = 'disponible'
     `).get();
 
+    // Catalogue complet des prix Lassonde depuis la DB
+    const prixReference = db.db.prepare(`
+      SELECT coupe, prix_kg, categorie
+      FROM prix_marche
+      WHERE concurrent = 'Lassonde'
+      ORDER BY categorie, prix_kg DESC
+    `).all();
+
     const now = new Date();
     const dateAujourdhui = now.toLocaleDateString('fr-CA', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       timeZone: 'America/Toronto',
     });
+
+    // Grouper les prix par catégorie pour affichage lisible
+    const prixParCategorie = {};
+    for (const p of prixReference) {
+      if (!prixParCategorie[p.categorie]) prixParCategorie[p.categorie] = [];
+      prixParCategorie[p.categorie].push(`${p.coupe} : ${p.prix_kg}$/kg`);
+    }
+    const catalogueTxt = Object.entries(prixParCategorie)
+      .map(([cat, lignes]) => `[${cat}]\n${lignes.join('\n')}`)
+      .join('\n\n');
 
     const contexte = `INSTRUCTION CRITIQUE :
 Date aujourd'hui : ${dateAujourdhui}
@@ -332,18 +350,34 @@ Année : ${now.getFullYear()}
 Tu DOIS utiliser cette date. Ignore ta date d'entraînement.
 
 Tu es l'agent assistant de Les Élevages Lassonde — Wagyu Halal — Repentigny QC.
-Tu réponds en français québécois, langage simple, max 3 phrases.
+Tu réponds en français québécois, langage simple, max 3 phrases sauf si on te demande une liste complète.
 
-STOCK ACTUEL :
-${JSON.stringify(dashboard, null, 2)}
+STOCK ACTUEL (scannés dans la DB) :
+${dashboard.length ? JSON.stringify(dashboard, null, 2) : 'Aucun sac scanné pour l\'instant.'}
 
 RÉSUMÉ : ${resume?.total_sacs ?? 0} sacs disponibles · ${resume?.valeur_stock ?? 0}$ en stock · Coût élevage : 4 000$/bœuf
+
+CATALOGUE COMPLET — ${prixReference.length} PRODUITS LASSONDE :
+${catalogueTxt}
+
+CALCUL VALEUR PAR BŒUF (350 kg utilisable) :
+- Revenu brut estimé : ~24 216$/bœuf
+- 6 bœufs/an = ~145 296$/an aux prix actuels
+- Avec plateforme +15% = ~167 090$/an
+- Avec plateforme +25% = ~181 620$/an
+- Prix le plus haut : Filet Mignon 241.99$/kg
+- Prix le plus bas : Os à Soupe 9.89$/kg
+- Prix moyen pondéré : ~67$/kg
+
+SUSPICION PRIX :
+- Short Ribs C-1528 à 39.99$/kg — sous-évalué (marché US : 110-150 USD/kg)
+- Code "1023" à 29.99$/kg — découpe exacte inconnue
+- Marteau Thor (jarret) à 24.99$/kg — à valider
 
 EXPERTISE HALAL :
 - Certification FAMBRAS (Federação das Associações Muçulmanas do Brasil) — reconnue internationalement
 - Abattage islamique strict : Bismillah, jugulaire/carotide/trachée, saignée complète
 - Abattoir certifié Halal au Québec — traçabilité complète bœuf → emballage
-- Visible sur chaque boîte de matière première
 
 QUAND UTILISER LA RECHERCHE WEB :
 - Prix des concurrents (Westmount, Costco wagyu, etc.)
