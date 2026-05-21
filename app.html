@@ -40,8 +40,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
   transition:width .3s cubic-bezier(.4,0,.2,1)}
 .tab.active{color:var(--gold)}
 .tab.active::after{width:32px}
-.tab-icon{font-size:20px;line-height:1;transition:transform .2s}
-.tab.active .tab-icon{transform:scale(1.12)}
+.tab-icon{width:22px;height:22px;transition:transform .2s;display:flex;align-items:center;justify-content:center}
+.tab-icon svg{width:22px;height:22px;transition:stroke .25s}
+.tab.active .tab-icon{transform:scale(1.1)}
+.tab.active .tab-icon svg{stroke:var(--gold)}
 
 /* ── PANELS ── */
 #content{flex:1;overflow:hidden;position:relative}
@@ -71,7 +73,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 }
 #btn-camera:active{transform:scale(.93);background:#1a1408;
   box-shadow:0 0 24px rgba(200,169,110,.3)}
-#btn-camera-icon{font-size:52px;line-height:1}
+#btn-camera-icon{width:56px;height:56px;color:var(--gold)}
+#btn-camera-icon svg{width:100%;height:100%}
 #btn-camera-label{font-family:sans-serif;font-size:12px;color:var(--muted);text-align:center}
 #btn-upload{background:none;border:1px solid var(--border);border-radius:8px;
   color:var(--gold);font-family:sans-serif;font-size:13px;cursor:pointer;padding:9px 20px}
@@ -215,8 +218,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 #panel-stock{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;padding-bottom:80px}
 #stock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 #stock-title{font-size:16px}
-#btn-refresh{background:none;border:1px solid var(--border);border-radius:6px;
-  color:var(--gold);padding:6px 12px;font-family:sans-serif;font-size:12px;cursor:pointer}
+#btn-refresh{background:none;border:1px solid var(--border);border-radius:8px;
+  color:var(--gold);padding:8px 14px;font-family:sans-serif;font-size:12px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;min-height:36px;transition:border-color .2s}
+#btn-refresh:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#btn-refresh:active{opacity:.75}
+#btn-refresh svg{width:14px;height:14px}
 .stock-section{margin-bottom:20px}
 .stock-section-title{font-family:sans-serif;font-size:11px;text-transform:uppercase;
   letter-spacing:.1em;color:var(--gold);margin-bottom:8px;padding-bottom:6px;
@@ -273,13 +280,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
   font-size:14px;resize:none;max-height:100px;outline:none;line-height:1.4;
   transition:border-color .2s,box-shadow .2s}
 #chat-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,169,110,.1)}
-#btn-send{width:42px;height:42px;border-radius:50%;
+#btn-send{width:44px;height:44px;border-radius:50%;
   background:linear-gradient(135deg,#d4b87a,var(--gold));
-  border:none;color:var(--bg);font-size:18px;cursor:pointer;display:flex;align-items:center;
+  border:none;color:var(--bg);cursor:pointer;display:flex;align-items:center;
   justify-content:center;flex-shrink:0;box-shadow:0 3px 12px rgba(200,169,110,.3);
   transition:all .2s}
+#btn-send:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #btn-send:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
 #btn-send:active{transform:scale(.92)}
+#btn-send svg{width:18px;height:18px}
 
 /* ── UTILITAIRES ── */
 #loader{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
@@ -305,7 +314,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted);
   font-family:sans-serif;font-size:13px}
-.empty-state div{font-size:32px;margin-bottom:12px}
+.empty-state svg{width:40px;height:40px;opacity:.35;margin:0 auto 12px;display:block}
+
+/* ── SKELETON LOADING ── */
+.skeleton{background:linear-gradient(90deg,var(--surface) 25%,#1a1a1a 50%,var(--surface) 75%);
+  background-size:200% 100%;animation:skeleton-shimmer 1.5s ease-in-out infinite;border-radius:6px}
+@keyframes skeleton-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── FOCUS RINGS ── */
+*:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.tab:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.field input:focus-visible{outline:none}
+
+/* ── REDUCED MOTION ── */
+@media (prefers-reduced-motion:reduce){
+  #btn-camera::before,#btn-camera::after{animation:none}
+  .wave-dot,.typing-dot,.skeleton{animation:none}
+  .msg{animation:none}
+  #toast{transition:opacity .15s}
+  .tab::after{transition:none}
+  .tab-icon,.tab-icon svg{transition:none}
+}
+
+/* ── CURSOR POINTER (touch clarity) ── */
+button,label[for],[role=button]{cursor:pointer}
+
+/* ── SCAN ANALYSE PREVIEW ── */
+#analyze-preview{border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
@@ -326,12 +362,24 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 
       <!-- Vue 1 : accueil -->
       <div id="view-idle">
-        <button id="btn-camera">
-          <div id="btn-camera-icon">📷</div>
-          <div id="btn-camera-label">Appuyer pour<br>scanner</div>
+        <button id="btn-camera" aria-label="Scanner une étiquette de viande">
+          <div id="btn-camera-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/>
+              <circle cx="12" cy="12" r="3.5"/>
+              <line x1="12" y1="2" x2="12" y2="4.5" stroke-width="1"/><line x1="12" y1="19.5" x2="12" y2="22" stroke-width="1"/>
+              <line x1="2" y1="12" x2="4.5" y2="12" stroke-width="1"/><line x1="19.5" y1="12" x2="22" y2="12" stroke-width="1"/>
+            </svg>
+          </div>
+          <div id="btn-camera-label">Scanner</div>
         </button>
-        <div id="idle-status"></div>
-        <button id="btn-upload">Charger une photo</button>
+        <div id="idle-status" aria-live="polite"></div>
+        <button id="btn-upload" aria-label="Charger une photo depuis la galerie">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="vertical-align:-2px;margin-right:5px" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>Charger une photo
+        </button>
       </div>
 
       <!-- Vue 2 : analyse en cours -->
@@ -391,32 +439,72 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
     <div id="panel-stock" class="panel">
       <div id="stock-header">
         <span id="stock-title">Inventaire en direct</span>
-        <button id="btn-refresh">↺ Actualiser</button>
+        <button id="btn-refresh" aria-label="Actualiser l'inventaire">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+          </svg>Actualiser
+        </button>
       </div>
       <div id="stock-body">
-        <div class="empty-state"><div>📦</div>Chargement…</div>
+        <!-- Skeleton loading -->
+        <div class="skeleton-wrap">
+          <div class="skeleton" style="height:52px;margin-bottom:16px;border-radius:10px"></div>
+          <div class="skeleton" style="height:14px;width:40%;margin-bottom:12px"></div>
+          <div class="skeleton" style="height:64px;margin-bottom:6px;border-radius:10px"></div>
+          <div class="skeleton" style="height:64px;margin-bottom:6px;border-radius:10px"></div>
+          <div class="skeleton" style="height:64px;margin-bottom:6px;border-radius:10px"></div>
+        </div>
       </div>
     </div>
 
     <!-- ══ AGENT ══ -->
     <div id="panel-agent" class="panel">
-      <div id="chat-messages">
-        <div class="msg system">Agent Lassonde · français québécois</div>
+      <div id="chat-messages" role="log" aria-live="polite" aria-label="Conversation avec l'agent">
+        <div class="msg system">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="12" height="12" style="vertical-align:-1px;margin-right:4px" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          Agent Lassonde · français québécois
+        </div>
       </div>
       <div id="chat-input-wrap">
         <form id="chat-form">
           <textarea id="chat-input" rows="1" placeholder="Quel est le stock de filet mignon ?"></textarea>
-          <button type="submit" id="btn-send">↑</button>
+          <button type="submit" id="btn-send" aria-label="Envoyer le message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+            </svg>
+          </button>
         </form>
       </div>
     </div>
 
   </div><!-- /content -->
 
-  <nav id="tabs">
-    <button class="tab active" data-tab="scanner"><span class="tab-icon">📷</span>Scanner</button>
-    <button class="tab" data-tab="stock"><span class="tab-icon">📦</span>Stock</button>
-    <button class="tab" data-tab="agent"><span class="tab-icon">💬</span>Agent</button>
+  <nav id="tabs" role="tablist" aria-label="Navigation principale">
+    <button class="tab active" data-tab="scanner" role="tab" aria-selected="true" aria-controls="panel-scanner">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/>
+          <rect x="8" y="8" width="8" height="8" rx="1"/>
+        </svg>
+      </span>Scanner
+    </button>
+    <button class="tab" data-tab="stock" role="tab" aria-selected="false" aria-controls="panel-stock">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+          <line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+      </span>Stock
+    </button>
+    <button class="tab" data-tab="agent" role="tab" aria-selected="false" aria-controls="panel-agent">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+        </svg>
+      </span>Agent
+    </button>
   </nav>
 
 </div>
@@ -852,7 +940,7 @@ async function loadAndRenderStock() {
 function renderLocalStock(items) {
   const body = $('stock-body');
   if (!items.length) {
-    body.innerHTML = '<div class="empty-state"><div>📦</div>Aucun sac disponible — scanner pour commencer</div>';
+    body.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Aucun sac disponible — scanner pour commencer</div>';
     return;
   }
 
@@ -954,9 +1042,13 @@ async function sendChat(msg) {
 //  NAVIGATION TABS
 // ══════════════════════════════════════════════════════
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab').forEach(t => {
+    const active = t.dataset.tab === tab;
+    t.classList.toggle('active', active);
+    t.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
-  if (tab === 'stock' && S.products.length === 0) loadAndRenderStock();
+  if (tab === 'stock') loadAndRenderStock();
 }
 
 // ══════════════════════════════════════════════════════
