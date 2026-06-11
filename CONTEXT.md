@@ -6,8 +6,8 @@
 - Local: http://localhost:3000
 
 ## FICHIERS CRITIQUES
-- app.html — PWA 3 tabs: Scanner/Stock/Agent (~1000 lignes vanilla HTML/CSS/JS)
-- server.js — routes: /config /health /api/agent /api/scan /api/inventaire /api/dashboard /api/prix-marche /api/betes
+- app.html — PWA 5 tabs: Scanner/Stock/Troupeau/Vérif/Agent (vanilla HTML/CSS/JS)
+- server.js — routes: /config /health /api/agent /api/scan /api/scan-liste /api/inventaire /api/dashboard /api/prix-marche /api/betes /api/troupeau (+/:numero/statut +/:numero/rapport)
 - database.js — SQLite better-sqlite3: inventaire/betes/ventes/prix_marche (44 prix chargés au boot)
 - .env — ANTHROPIC_API_KEY SHOPIFY_ACCESS_TOKEN SHOPIFY_STORE_URL SHOPIFY_API_VERSION RAILWAY_TOKEN
 - BRAIN.md — mémoire projet complète (lire pour contexte business)
@@ -51,11 +51,14 @@
 - Deploy Railway auto via GitHub (leloup067/lassonde-wagyu)
 - SVG icons (tabs + scanner + send + upload + refresh)
 - Accessibilité: aria-labels, focus rings, prefers-reduced-motion
+- TROUPEAU: inventaire bêtes vivantes (pâturage) + abattues (frigo) — tag ATQ MAPAQ, naissance, poids vif, âge, ETA abattage 30 mois — statuts pâturage→abattoir→frigo→vendu — agrégats morceaux/poids/valeur par bête (lien numero_bete dans inventaire)
+- VÉRIF COMMANDE: client photographie sa liste de découpe (/api/scan-liste Claude vision) → checklist → scanne chaque morceau → pointage auto fuzzy (coupe+poids) → progression + poids total + valeur totale — persist localStorage
+- Scanner: champ "Bête (tag ATQ)" lie chaque sac scanné à une bête
 
 ## FEATURES À FAIRE ❌
 - Mode stock caché / drops contrôlés (Shopify status=draft)
 - Système pré-commandes
-- Dashboard profit par bête (coût élevage vs revenus réels)
+- Dashboard profit par bête (coût élevage vs revenus réels — partiellement fait via /api/troupeau/:n/rapport)
 - Alerte prix marché auto (boucher sous-évalue?)
 - Calendrier disponibilité prochain boeuf
 - Étiquettes synthétiques — test 9 conditions photo

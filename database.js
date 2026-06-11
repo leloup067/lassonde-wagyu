@@ -61,6 +61,25 @@ try {
   db.exec(`ALTER TABLE prix_marche ADD COLUMN categorie TEXT DEFAULT 'Autre'`);
 } catch (_) { /* colonne existe déjà */ }
 
+// Migrations betes → module Troupeau (bêtes vivantes + frigo)
+// tag_atq = numéro de boucle d'oreille ATQ (Agri-Traçabilité Québec / MAPAQ)
+const MIGRATIONS_BETES = [
+  `ALTER TABLE betes ADD COLUMN tag_atq TEXT`,
+  `ALTER TABLE betes ADD COLUMN nom TEXT`,
+  `ALTER TABLE betes ADD COLUMN type TEXT DEFAULT 'bœuf'`,
+  `ALTER TABLE betes ADD COLUMN date_naissance TEXT`,
+  `ALTER TABLE betes ADD COLUMN poids_vif_kg REAL`,
+  `ALTER TABLE betes ADD COLUMN race TEXT DEFAULT 'Wagyu'`,
+  `ALTER TABLE betes ADD COLUMN date_abattage TEXT`,
+  `ALTER TABLE betes ADD COLUMN poids_carcasse_kg REAL`,
+  `ALTER TABLE betes ADD COLUMN notes TEXT`,
+];
+for (const m of MIGRATIONS_BETES) {
+  try { db.exec(m); } catch (_) { /* colonne existe déjà */ }
+}
+// Statut legacy 'en cours' → 'pâturage' (nouveau vocabulaire troupeau)
+db.exec(`UPDATE betes SET statut = 'pâturage' WHERE statut = 'en cours' OR statut IS NULL`);
+
 // ─── SEED : CATALOGUE COMPLET LASSONDE — 44 PRODUITS ────────────────────────
 const prixLassonde = [
   // ULTRA PREMIUM
@@ -224,18 +243,91 @@ function getResume() {
 // ─── BÊTES ────────────────────────────────────────────────────────────────────
 function upsertBete(data) {
   db.prepare(`
-    INSERT INTO betes (numero_bete, date_livraison, cout_elevage, statut)
-    VALUES (@numero_bete, @date_livraison, @cout_elevage, @statut)
+    INSERT INTO betes (numero_bete, tag_atq, nom, type, date_naissance, poids_vif_kg,
+      race, date_livraison, cout_elevage, date_abattage, poids_carcasse_kg, notes, statut)
+    VALUES (@numero_bete, @tag_atq, @nom, @type, @date_naissance, @poids_vif_kg,
+      @race, @date_livraison, @cout_elevage, @date_abattage, @poids_carcasse_kg, @notes, @statut)
     ON CONFLICT(numero_bete) DO UPDATE SET
-      date_livraison = excluded.date_livraison,
-      cout_elevage   = excluded.cout_elevage,
-      statut         = excluded.statut
+      tag_atq           = COALESCE(excluded.tag_atq, tag_atq),
+      nom               = COALESCE(excluded.nom, nom),
+      type              = COALESCE(excluded.type, type),
+      date_naissance    = COALESCE(excluded.date_naissance, date_naissance),
+      poids_vif_kg      = COALESCE(excluded.poids_vif_kg, poids_vif_kg),
+      race              = COALESCE(excluded.race, race),
+      date_livraison    = COALESCE(excluded.date_livraison, date_livraison),
+      cout_elevage      = excluded.cout_elevage,
+      date_abattage     = COALESCE(excluded.date_abattage, date_abattage),
+      poids_carcasse_kg = COALESCE(excluded.poids_carcasse_kg, poids_carcasse_kg),
+      notes             = COALESCE(excluded.notes, notes),
+      statut            = excluded.statut
   `).run({
-    numero_bete:    data.numero_bete   || 1,
-    date_livraison: data.date_livraison|| null,
-    cout_elevage:   data.cout_elevage  || 4000,
-    statut:         data.statut        || 'en cours',
+    numero_bete:       data.numero_bete       || 1,
+    tag_atq:           data.tag_atq           || null,
+    nom:               data.nom               || null,
+    type:              data.type              || 'bœuf',
+    date_naissance:    data.date_naissance    || null,
+    poids_vif_kg:      data.poids_vif_kg      || null,
+    race:              data.race              || 'Wagyu',
+    date_livraison:    data.date_livraison    || null,
+    cout_elevage:      data.cout_elevage      || 4000,
+    date_abattage:     data.date_abattage     || null,
+    poids_carcasse_kg: data.poids_carcasse_kg || null,
+    notes:             data.notes             || null,
+    statut:            data.statut            || 'pâturage',
   });
+  return db.prepare('SELECT * FROM betes WHERE numero_bete = ?').get(data.numero_bete || 1);
+}
+
+// Troupeau complet : chaque bête + agrégats des morceaux scannés (liés par numero_bete)
+function getTroupeau() {
+  return db.prepare(`
+    SELECT
+      b.*,
+      COUNT(i.id)                                                          AS nb_morceaux,
+      ROUND(SUM(i.poids_kg), 2)                                            AS poids_decoupe_kg,
+      ROUND(SUM(i.prix_total), 2)                                          AS valeur_totale,
+      SUM(CASE WHEN i.statut = 'disponible' THEN 1 ELSE 0 END)             AS nb_disponibles,
+      ROUND(SUM(CASE WHEN i.statut = 'vendu' THEN i.prix_total ELSE 0 END), 2) AS valeur_vendue
+    FROM betes b
+    LEFT JOIN inventaire i ON i.numero_bete = b.numero_bete
+    GROUP BY b.id
+    ORDER BY
+      CASE b.statut
+        WHEN 'pâturage' THEN 0
+        WHEN 'abattoir' THEN 1
+        WHEN 'frigo'    THEN 2
+        ELSE 3
+      END,
+      b.numero_bete
+  `).all();
+}
+
+function setStatutBete(numero_bete, statut, date_abattage = null) {
+  db.prepare(`
+    UPDATE betes SET
+      statut        = @statut,
+      date_abattage = COALESCE(@date_abattage, date_abattage)
+    WHERE numero_bete = @numero_bete
+  `).run({ numero_bete, statut, date_abattage });
+  return db.prepare('SELECT * FROM betes WHERE numero_bete = ?').get(numero_bete);
+}
+
+// Rapport complet d'une bête : fiche + tous les morceaux + totaux
+function getRapportBete(numero_bete) {
+  const bete = db.prepare('SELECT * FROM betes WHERE numero_bete = ?').get(numero_bete);
+  if (!bete) return null;
+  const morceaux = db.prepare(`
+    SELECT id, coupe, poids_kg, prix_kg, prix_total, meilleur_avant, statut, date_scan
+    FROM inventaire WHERE numero_bete = ?
+    ORDER BY prix_total DESC
+  `).all(numero_bete);
+  const totaux = {
+    nb_morceaux:      morceaux.length,
+    poids_total_kg:   Math.round(morceaux.reduce((s, m) => s + (m.poids_kg   || 0), 0) * 1000) / 1000,
+    valeur_totale:    Math.round(morceaux.reduce((s, m) => s + (m.prix_total || 0), 0) * 100) / 100,
+    marge_estimee:    Math.round((morceaux.reduce((s, m) => s + (m.prix_total || 0), 0) - (bete.cout_elevage || 4000)) * 100) / 100,
+  };
+  return { bete, morceaux, totaux };
 }
 
 function getBetes() {
@@ -321,6 +413,9 @@ module.exports = {
   getResume,
   upsertBete,
   getBetes,
+  getTroupeau,
+  setStatutBete,
+  getRapportBete,
   enregistrerVente,
   getPrixMarche,
   comparerPrix,

@@ -111,6 +111,115 @@ app.post('/api/betes', (req, res) => {
   catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// ─── API TROUPEAU (bêtes vivantes pâturage + bêtes au frigo) ─────────────────
+
+// Liste complète du troupeau avec agrégats morceaux par bête
+app.get('/api/troupeau', (req, res) => {
+  try { res.json({ ok: true, troupeau: db.getTroupeau() }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Créer / mettre à jour une bête (tag ATQ, naissance, poids vif, etc.)
+app.post('/api/troupeau', (req, res) => {
+  try {
+    const d = req.body;
+    if (!d.numero_bete) return res.status(400).json({ ok: false, error: 'numero_bete requis' });
+    const bete = db.upsertBete(d);
+    res.json({ ok: true, bete });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Changer le statut d'une bête : pâturage → abattoir → frigo → vendu
+app.put('/api/troupeau/:numero/statut', (req, res) => {
+  try {
+    const { statut, date_abattage } = req.body;
+    const STATUTS = ['pâturage', 'abattoir', 'frigo', 'vendu'];
+    if (!STATUTS.includes(statut)) {
+      return res.status(400).json({ ok: false, error: `statut doit être : ${STATUTS.join(' | ')}` });
+    }
+    const bete = db.setStatutBete(parseInt(req.params.numero), statut, date_abattage || null);
+    if (!bete) return res.status(404).json({ ok: false, error: 'bête introuvable' });
+    res.json({ ok: true, bete });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Rapport complet d'une bête : fiche + liste des morceaux + poids/valeur totale
+app.get('/api/troupeau/:numero/rapport', (req, res) => {
+  try {
+    const rapport = db.getRapportBete(parseInt(req.params.numero));
+    if (!rapport) return res.status(404).json({ ok: false, error: 'bête introuvable' });
+    res.json({ ok: true, ...rapport });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ─── API SCAN LISTE DE DÉCOUPE (vérification commande client) ────────────────
+// Le client photographie la liste papier reçue avec son bœuf → Claude extrait
+// toutes les lignes pour permettre le pointage morceau par morceau.
+app.post('/api/scan-liste', async (req, res) => {
+  res.setTimeout(180000);
+  try {
+    const { image, mimeType = 'image/jpeg' } = req.body;
+    if (!image) return res.status(400).json({ ok: false, error: 'image base64 requise' });
+    if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ ok: false, error: 'Clé Anthropic manquante' });
+
+    const LISTE_PROMPT = `Tu analyses la photo d'une LISTE DE DÉCOUPE de boucherie québécoise (Les Élevages Lassonde).
+C'est la liste papier remise au client avec son bœuf : chaque ligne = une coupe avec quantité/poids/prix.
+Si l'image ne contient PAS une liste de découpe, réponds {"liste":false}.
+Sinon, réponds UNIQUEMENT avec ce JSON (sans texte avant ni après) :
+{
+  "liste": true,
+  "numero_bete": "numéro ou tag de la bête si visible, sinon null",
+  "lignes": [
+    { "coupe": "nom de la coupe", "quantite": 2, "poids_kg": 0.823, "prix_total": 73.44 }
+  ]
+}
+Règles :
+- Une entrée par ligne de la liste. quantite = nombre de paquets si indiqué, sinon 1.
+- poids_kg et prix_total : null si illisibles. Ne devine jamais un chiffre.
+- Garde les noms de coupes EXACTEMENT comme écrits sur la liste.`;
+
+    const result = await new Promise((resolve, reject) => {
+      const body = JSON.stringify({
+        model: 'claude-opus-4-7',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: mimeType, data: image } },
+          { type: 'text', text: LISTE_PROMPT },
+        ]}],
+      });
+      const request = https.request({
+        hostname: 'api.anthropic.com',
+        path: '/v1/messages',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      }, resp => {
+        let data = '';
+        resp.on('data', d => data += d);
+        resp.on('end', () => {
+          try {
+            const j = JSON.parse(data);
+            if (j.error) return reject(new Error(j.error.message));
+            const text = j.content?.[0]?.text ?? '';
+            const m = text.match(/\{[\s\S]*\}/);
+            if (!m) return reject(new Error('Réponse Claude invalide: ' + text.slice(0, 100)));
+            resolve(JSON.parse(m[0]));
+          } catch (e) { reject(e); }
+        });
+      });
+      request.on('error', reject);
+      request.write(body);
+      request.end();
+    });
+
+    res.json({ ok: true, result });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ─── API PRIX MARCHÉ ──────────────────────────────────────────────────────────
 app.get('/api/prix-marche', (req, res) => {
   try {

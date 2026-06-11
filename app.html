@@ -342,6 +342,95 @@ button,label[for],[role=button]{cursor:pointer}
 
 /* ── SCAN ANALYSE PREVIEW ── */
 #analyze-preview{border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+
+/* ── TROUPEAU ── */
+#troupeau-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+#troupeau-title{font-size:17px;color:var(--gold)}
+#btn-add-bete{background:var(--gold);color:#0a0a0a;border:none;border-radius:8px;
+  padding:8px 14px;font-family:sans-serif;font-size:13px;font-weight:600}
+.bete-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:14px;margin-bottom:10px}
+.bete-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.bete-id{font-size:15px;color:var(--text)}
+.bete-id small{color:var(--muted);font-family:sans-serif;font-size:11px;display:block;margin-top:2px}
+.bete-statut{font-family:sans-serif;font-size:10px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;border-radius:20px;padding:4px 10px;white-space:nowrap}
+.bete-statut.paturage{background:rgba(110,200,130,.14);color:#7fd494}
+.bete-statut.abattoir{background:rgba(230,170,80,.14);color:#e8b46a}
+.bete-statut.frigo{background:rgba(120,170,255,.14);color:#8cb6ff}
+.bete-statut.vendu{background:rgba(160,160,160,.14);color:#aaa}
+.bete-meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;
+  font-family:sans-serif;font-size:11.5px;color:var(--muted)}
+.bete-meta strong{color:var(--text);font-weight:600}
+.bete-frigo-stats{display:flex;gap:8px;margin-top:12px}
+.bete-stat{flex:1;background:rgba(200,169,110,.07);border-radius:8px;padding:8px 6px;text-align:center}
+.bete-stat-num{display:block;font-size:14px;color:var(--gold)}
+.bete-stat-lbl{display:block;font-family:sans-serif;font-size:9.5px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.bete-actions{display:flex;gap:8px;margin-top:12px}
+.bete-actions button{flex:1;background:transparent;border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:8px;font-family:sans-serif;font-size:12px}
+.bete-actions button.primary{border-color:var(--gold);color:var(--gold)}
+.troupeau-section-title{font-family:sans-serif;font-size:11px;font-weight:700;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
+.troupeau-section-title:first-child{margin-top:0}
+
+/* ── MODAL BÊTE ── */
+#modal-bete{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;
+  align-items:flex-end;justify-content:center;z-index:60}
+#modal-bete.show{display:flex}
+#modal-bete-inner{background:var(--bg);border:1px solid var(--border);border-radius:16px 16px 0 0;
+  padding:20px 18px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:480px;
+  max-height:86vh;overflow-y:auto}
+#modal-bete-inner h3{color:var(--gold);font-size:16px;margin:0 0 14px}
+#modal-bete-inner select{width:100%;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);border-radius:8px;padding:11px 12px;font-size:15px;font-family:inherit}
+#modal-bete-btns{display:flex;gap:10px;margin-top:16px}
+#modal-bete-btns button{flex:1;border-radius:10px;padding:13px;font-family:sans-serif;font-size:14px}
+#btn-bete-cancel{background:transparent;border:1px solid var(--border);color:var(--muted)}
+#btn-bete-save{background:var(--gold);border:none;color:#0a0a0a;font-weight:700}
+#f-bete{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:11px 12px;font-size:15px;font-family:inherit}
+
+/* ── VÉRIF COMMANDE ── */
+.verif-intro{text-align:center;padding:34px 20px 22px}
+.verif-intro-icon{font-size:40px;margin-bottom:12px}
+.verif-intro-title{font-size:18px;color:var(--gold);margin-bottom:8px}
+.verif-intro-text{font-family:sans-serif;font-size:13px;color:var(--muted);line-height:1.55;max-width:300px;margin:0 auto}
+#btn-scan-liste{display:block;margin:8px auto;background:var(--gold);color:#0a0a0a;border:none;
+  border-radius:12px;padding:15px 28px;font-family:sans-serif;font-size:15px;font-weight:700}
+#verif-analyze-status{display:flex;flex-direction:column;align-items:center;gap:18px;
+  padding:60px 20px;font-family:sans-serif;font-size:13px;color:var(--muted)}
+#verif-progress-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+#verif-progress-row{display:flex;justify-content:space-between;font-family:sans-serif;font-size:13px;margin-bottom:8px}
+#verif-progress-label{color:var(--text);font-weight:600}
+#verif-progress-pct{color:var(--gold)}
+#verif-progress-bar{height:7px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+#verif-progress-fill{height:100%;width:0;background:var(--gold);border-radius:4px;transition:width .45s ease}
+#verif-totals{display:flex;gap:8px;margin-top:12px}
+.verif-total{flex:1;background:rgba(200,169,110,.07);border-radius:8px;padding:9px 6px;text-align:center}
+.verif-total-num{display:block;font-size:15px;color:var(--gold)}
+.verif-total-lbl{display:block;font-family:sans-serif;font-size:9.5px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+#verif-actions{display:flex;gap:8px;margin-bottom:14px}
+#btn-verif-scan{flex:1;background:var(--gold);color:#0a0a0a;border:none;border-radius:10px;
+  padding:13px;font-family:sans-serif;font-size:14px;font-weight:700}
+#btn-verif-reset{background:transparent;border:1px solid var(--border);color:var(--muted);
+  border-radius:10px;padding:13px 16px;font-size:15px}
+.verif-ligne{display:flex;align-items:center;gap:11px;background:var(--surface);
+  border:1px solid var(--border);border-radius:10px;padding:11px 12px;margin-bottom:6px;transition:opacity .3s}
+.verif-ligne.cochee{opacity:.55;border-color:rgba(110,200,130,.3)}
+.verif-check{width:22px;height:22px;border-radius:50%;border:1.6px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-size:12px;color:#7fd494;font-weight:700}
+.verif-ligne.cochee .verif-check{background:rgba(110,200,130,.15);border-color:#7fd494}
+.verif-ligne-info{flex:1;min-width:0}
+.verif-ligne-coupe{font-size:14px;color:var(--text)}
+.verif-ligne.cochee .verif-ligne-coupe{text-decoration:line-through}
+.verif-ligne-detail{font-family:sans-serif;font-size:11px;color:var(--muted);margin-top:1px}
+.verif-ligne-prix{font-size:13px;color:var(--gold);white-space:nowrap}
+.verif-ligne.extra{border-color:rgba(230,170,80,.4)}
+.verif-ligne.extra .verif-check{color:#e8b46a}
 </style>
 </head>
 <body>
@@ -430,6 +519,8 @@ button,label[for],[role=button]{cursor:pointer}
           <div class="card-group-title">Traçabilité</div>
           <div class="field"><label>Meilleur avant</label>
             <input type="date" id="f-mb"></div>
+          <div class="field"><label>Bête (tag ATQ)</label>
+            <select id="f-bete"><option value="">— aucune —</option></select></div>
         </div>
       </div>
 
@@ -455,6 +546,58 @@ button,label[for],[role=button]{cursor:pointer}
           <div class="skeleton" style="height:64px;margin-bottom:6px;border-radius:10px"></div>
           <div class="skeleton" style="height:64px;margin-bottom:6px;border-radius:10px"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- ══ TROUPEAU ══ -->
+    <div id="panel-troupeau" class="panel">
+      <div id="troupeau-header">
+        <span id="troupeau-title">Troupeau</span>
+        <button id="btn-add-bete" aria-label="Ajouter une bête">＋ Ajouter</button>
+      </div>
+      <div id="troupeau-body">
+        <div class="empty-state"><div>🐂</div>Chargement du troupeau…</div>
+      </div>
+    </div>
+
+    <!-- ══ VÉRIF COMMANDE ══ -->
+    <div id="panel-verif" class="panel">
+      <!-- Étape 1 : pas encore de liste -->
+      <div id="verif-idle">
+        <div class="verif-intro">
+          <div class="verif-intro-icon">📋</div>
+          <div class="verif-intro-title">Vérification de commande</div>
+          <div class="verif-intro-text">Photographiez la liste de découpe reçue avec votre bœuf, puis scannez chaque morceau pour confirmer que tout est là.</div>
+        </div>
+        <button id="btn-scan-liste">📷 Photographier la liste</button>
+      </div>
+      <!-- Étape 2 : analyse de la liste -->
+      <div id="verif-analyzing" style="display:none">
+        <div id="verif-analyze-status">
+          <div class="wave-dots">
+            <div class="wave-dot"></div><div class="wave-dot"></div><div class="wave-dot"></div>
+          </div>
+          <span>Lecture de la liste de découpe…</span>
+        </div>
+      </div>
+      <!-- Étape 3 : checklist active -->
+      <div id="verif-active" style="display:none">
+        <div id="verif-progress-card">
+          <div id="verif-progress-row">
+            <span id="verif-progress-label">0 / 0 morceaux</span>
+            <span id="verif-progress-pct">0%</span>
+          </div>
+          <div id="verif-progress-bar"><div id="verif-progress-fill"></div></div>
+          <div id="verif-totals">
+            <div class="verif-total"><span class="verif-total-num" id="verif-total-poids">—</span><span class="verif-total-lbl">poids total</span></div>
+            <div class="verif-total"><span class="verif-total-num" id="verif-total-valeur">—</span><span class="verif-total-lbl">valeur totale</span></div>
+          </div>
+        </div>
+        <div id="verif-actions">
+          <button id="btn-verif-scan">📷 Scanner un morceau</button>
+          <button id="btn-verif-reset">↺</button>
+        </div>
+        <div id="verif-liste"></div>
       </div>
     </div>
 
@@ -498,6 +641,25 @@ button,label[for],[role=button]{cursor:pointer}
         </svg>
       </span>Stock
     </button>
+    <button class="tab" data-tab="troupeau" role="tab" aria-selected="false" aria-controls="panel-troupeau">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9c-1.5 0-2.5-1.2-2.5-2.5S2.5 4 4 4M20 9c1.5 0 2.5-1.2 2.5-2.5S21.5 4 20 4"/>
+          <path d="M7 5.5C7 4 8 3 9.5 3h5C16 3 17 4 17 5.5V8c0 3-2 5-5 5s-5-2-5-5V5.5z"/>
+          <path d="M9 13.5V17c0 2 1.3 4 3 4s3-2 3-4v-3.5"/>
+          <circle cx="9.7" cy="6.5" r=".7" fill="currentColor" stroke="none"/>
+          <circle cx="14.3" cy="6.5" r=".7" fill="currentColor" stroke="none"/>
+        </svg>
+      </span>Troupeau
+    </button>
+    <button class="tab" data-tab="verif" role="tab" aria-selected="false" aria-controls="panel-verif">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        </svg>
+      </span>Vérif
+    </button>
     <button class="tab" data-tab="agent" role="tab" aria-selected="false" aria-controls="panel-agent">
       <span class="tab-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -516,6 +678,43 @@ button,label[for],[role=button]{cursor:pointer}
   <button id="btn-confirm">✓ Confirmer</button>
 </div>
 <div id="cam-flash"></div>
+
+<!-- Modal : ajouter/éditer une bête -->
+<div id="modal-bete">
+  <div id="modal-bete-inner">
+    <h3 id="modal-bete-title">Ajouter une bête</h3>
+    <div class="card-group">
+      <div class="card-group-title">Identification</div>
+      <div class="field"><label>Numéro de bête *</label>
+        <input type="number" id="b-numero" min="1" placeholder="ex: 7"></div>
+      <div class="field"><label>Tag ATQ (boucle d'oreille)</label>
+        <input type="text" id="b-tag" placeholder="ex: 124 000 312 456 789"></div>
+      <div class="field"><label>Nom (optionnel)</label>
+        <input type="text" id="b-nom" placeholder="ex: Kuro"></div>
+      <div class="field"><label>Type</label>
+        <select id="b-type">
+          <option value="bœuf">Bœuf</option>
+          <option value="veau">Veau</option>
+          <option value="vache">Vache</option>
+        </select></div>
+    </div>
+    <div class="card-group">
+      <div class="card-group-title">Élevage</div>
+      <div class="field"><label>Date de naissance</label>
+        <input type="date" id="b-naissance"></div>
+      <div class="field"><label>Poids vif (kg)</label>
+        <input type="number" id="b-poids" step="0.5" placeholder="ex: 620"></div>
+      <div class="field"><label>Race</label>
+        <input type="text" id="b-race" value="Wagyu"></div>
+      <div class="field"><label>Notes</label>
+        <input type="text" id="b-notes" placeholder="ex: lot 2024-B, génétique Tajima"></div>
+    </div>
+    <div id="modal-bete-btns">
+      <button id="btn-bete-cancel">Annuler</button>
+      <button id="btn-bete-save">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal : même coupe -->
 <div id="modal-dup">
@@ -889,6 +1088,7 @@ async function confirmItems() {
         prix_kg:       parseFloat(form.prixKg)   || 0,
         prix_total:    parseFloat(form.total)    || 0,
         meilleur_avant: form.meilleurAvant || null,
+        numero_bete:   parseInt($('f-bete').value) || null,
       };
       const r = await fetch('/api/inventaire', {
         method: 'POST',
@@ -1039,6 +1239,345 @@ async function sendChat(msg) {
 }
 
 // ══════════════════════════════════════════════════════
+//  TROUPEAU — bêtes vivantes (pâturage) + bêtes au frigo
+// ══════════════════════════════════════════════════════
+const AGE_ABATTAGE_MOIS = 30; // cible Wagyu
+
+function ageEnMois(dateNaissance) {
+  if (!dateNaissance) return null;
+  const n = new Date(dateNaissance);
+  if (isNaN(n)) return null;
+  return Math.max(0, Math.floor((Date.now() - n.getTime()) / (30.44 * 24 * 3600 * 1000)));
+}
+
+function renderBeteCard(b) {
+  const statutClass = { 'pâturage': 'paturage', 'abattoir': 'abattoir', 'frigo': 'frigo', 'vendu': 'vendu' }[b.statut] || 'paturage';
+  const age = ageEnMois(b.date_naissance);
+  const vivant = b.statut === 'pâturage' || b.statut === 'abattoir';
+
+  let meta = [];
+  if (b.tag_atq)        meta.push(`Tag ATQ <strong>${b.tag_atq}</strong>`);
+  if (b.type)           meta.push(`<strong>${b.type}</strong>${b.race ? ' ' + b.race : ''}`);
+  if (age !== null)     meta.push(`Âge <strong>${age} mois</strong>`);
+  if (vivant && age !== null) {
+    const restant = AGE_ABATTAGE_MOIS - age;
+    meta.push(restant > 0 ? `Abattage dans <strong>~${restant} mois</strong>` : `<strong>Prêt pour l'abattage</strong>`);
+  }
+  if (b.poids_vif_kg)   meta.push(`Poids vif <strong>${b.poids_vif_kg} kg</strong>`);
+  if (b.date_abattage)  meta.push(`Abattu le <strong>${b.date_abattage}</strong>`);
+  if (b.notes)          meta.push(b.notes);
+
+  // Stats frigo : morceaux scannés liés à cette bête
+  let frigoStats = '';
+  if (!vivant && b.nb_morceaux > 0) {
+    frigoStats = `<div class="bete-frigo-stats">
+      <div class="bete-stat"><span class="bete-stat-num">${b.nb_morceaux}</span><span class="bete-stat-lbl">morceaux</span></div>
+      <div class="bete-stat"><span class="bete-stat-num">${(b.poids_decoupe_kg || 0).toFixed(1)} kg</span><span class="bete-stat-lbl">poids découpé</span></div>
+      <div class="bete-stat"><span class="bete-stat-num">${(b.valeur_totale || 0).toFixed(0)} $</span><span class="bete-stat-lbl">valeur</span></div>
+      <div class="bete-stat"><span class="bete-stat-num">${b.nb_disponibles || 0}</span><span class="bete-stat-lbl">en vente</span></div>
+    </div>`;
+  }
+
+  let actions = '';
+  if (b.statut === 'pâturage') {
+    actions = `<div class="bete-actions">
+      <button onclick="changerStatutBete(${b.numero_bete}, 'abattoir')">→ Abattoir</button>
+      <button class="primary" onclick="changerStatutBete(${b.numero_bete}, 'frigo')">→ Frigo (abattu)</button>
+    </div>`;
+  } else if (b.statut === 'abattoir') {
+    actions = `<div class="bete-actions">
+      <button onclick="changerStatutBete(${b.numero_bete}, 'pâturage')">← Pâturage</button>
+      <button class="primary" onclick="changerStatutBete(${b.numero_bete}, 'frigo')">→ Frigo (abattu)</button>
+    </div>`;
+  }
+
+  return `<div class="bete-card">
+    <div class="bete-card-top">
+      <div class="bete-id">${b.nom ? b.nom + ' · ' : ''}Bête #${b.numero_bete}
+        <small>${b.tag_atq || 'tag ATQ non renseigné'}</small>
+      </div>
+      <span class="bete-statut ${statutClass}">${b.statut}</span>
+    </div>
+    <div class="bete-meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
+    ${frigoStats}
+    ${actions}
+  </div>`;
+}
+
+async function loadTroupeau() {
+  const body = $('troupeau-body');
+  try {
+    const r = await fetch('/api/troupeau');
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    const troupeau = d.troupeau || [];
+    S.troupeau = troupeau;
+    remplirSelectBetes();
+
+    if (!troupeau.length) {
+      body.innerHTML = '<div class="empty-state"><div>🐂</div>Aucune bête — ajoutez votre troupeau avec ＋ Ajouter</div>';
+      return;
+    }
+    const vivants = troupeau.filter(b => b.statut === 'pâturage' || b.statut === 'abattoir');
+    const frigo   = troupeau.filter(b => b.statut === 'frigo');
+    const vendus  = troupeau.filter(b => b.statut === 'vendu');
+
+    let html = '';
+    if (vivants.length) html += `<div class="troupeau-section-title">🌿 En pâturage (${vivants.length})</div>` + vivants.map(renderBeteCard).join('');
+    if (frigo.length)   html += `<div class="troupeau-section-title">❄️ Au frigo — prêt à manger (${frigo.length})</div>` + frigo.map(renderBeteCard).join('');
+    if (vendus.length)  html += `<div class="troupeau-section-title">Vendus (${vendus.length})</div>` + vendus.map(renderBeteCard).join('');
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = `<div class="empty-state"><div>⚠️</div>${e.message}</div>`;
+  }
+}
+
+async function changerStatutBete(numero, statut) {
+  try {
+    const payload = { statut };
+    if (statut === 'frigo') payload.date_abattage = new Date().toISOString().slice(0, 10);
+    const r = await fetch(`/api/troupeau/${numero}/statut`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    toast(`Bête #${numero} → ${statut}`);
+    loadTroupeau();
+  } catch (e) { toast('Erreur : ' + e.message, 3200); }
+}
+
+// Remplit le select "Bête" du formulaire scanner (bêtes au frigo en premier)
+function remplirSelectBetes() {
+  const sel = $('f-bete');
+  if (!sel || !S.troupeau) return;
+  const current = sel.value;
+  const frigo = S.troupeau.filter(b => b.statut === 'frigo');
+  const autres = S.troupeau.filter(b => b.statut !== 'frigo' && b.statut !== 'vendu');
+  sel.innerHTML = '<option value="">— aucune —</option>'
+    + frigo.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · frigo${b.tag_atq ? ' · ' + b.tag_atq : ''}</option>`).join('')
+    + autres.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · ${b.statut}</option>`).join('');
+  if (current) sel.value = current;
+}
+
+// Modal ajout bête
+function ouvrirModalBete() {
+  const nums = (S.troupeau || []).map(b => b.numero_bete);
+  $('b-numero').value = nums.length ? Math.max(...nums) + 1 : 1;
+  $('modal-bete').classList.add('show');
+}
+
+async function sauverBete() {
+  const numero = parseInt($('b-numero').value);
+  if (!numero) { toast('Numéro de bête requis', 2600); return; }
+  const payload = {
+    numero_bete:    numero,
+    tag_atq:        $('b-tag').value.trim()   || null,
+    nom:            $('b-nom').value.trim()   || null,
+    type:           $('b-type').value,
+    date_naissance: $('b-naissance').value    || null,
+    poids_vif_kg:   parseFloat($('b-poids').value) || null,
+    race:           $('b-race').value.trim()  || 'Wagyu',
+    notes:          $('b-notes').value.trim() || null,
+    statut:         'pâturage',
+  };
+  try {
+    const r = await fetch('/api/troupeau', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    $('modal-bete').classList.remove('show');
+    ['b-tag','b-nom','b-naissance','b-poids','b-notes'].forEach(id => $(id).value = '');
+    toast(`✓ Bête #${numero} ajoutée au troupeau`);
+    loadTroupeau();
+  } catch (e) { toast('Erreur : ' + e.message, 3200); }
+}
+
+// ══════════════════════════════════════════════════════
+//  VÉRIF COMMANDE — le client pointe sa liste de découpe
+// ══════════════════════════════════════════════════════
+const VERIF_KEY = 'lassonde_verif_v1';
+
+function verifState() {
+  if (!S.verif) {
+    try { S.verif = JSON.parse(localStorage.getItem(VERIF_KEY)) || null; } catch (_) { S.verif = null; }
+  }
+  return S.verif;
+}
+function verifSave() {
+  try { localStorage.setItem(VERIF_KEY, JSON.stringify(S.verif)); } catch (_) {}
+}
+
+function showVerifView(name) {
+  $('verif-idle').style.display      = name === 'idle'      ? '' : 'none';
+  $('verif-analyzing').style.display = name === 'analyzing' ? '' : 'none';
+  $('verif-active').style.display    = name === 'active'    ? '' : 'none';
+}
+
+function normaliserCoupe(s) {
+  return (s || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')   // accents
+    .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function renderVerif() {
+  const v = verifState();
+  if (!v || !v.lignes) { showVerifView('idle'); return; }
+  showVerifView('active');
+
+  const total  = v.lignes.length;
+  const coches = v.lignes.filter(l => l.coche).length;
+  const pct    = total ? Math.round(coches / total * 100) : 0;
+  $('verif-progress-label').textContent = `${coches} / ${total} morceaux`;
+  $('verif-progress-pct').textContent   = pct + '%';
+  $('verif-progress-fill').style.width  = pct + '%';
+
+  const poidsTotal  = v.lignes.reduce((s, l) => s + (l.poids_kg   || 0) * (l.quantite || 1), 0)
+                    + (v.extra || []).reduce((s, l) => s + (l.poids_kg || 0), 0);
+  const valeurTotal = v.lignes.reduce((s, l) => s + (l.prix_total || 0) * (l.quantite || 1), 0)
+                    + (v.extra || []).reduce((s, l) => s + (l.prix_total || 0), 0);
+  $('verif-total-poids').textContent  = poidsTotal  ? poidsTotal.toFixed(2) + ' kg' : '—';
+  $('verif-total-valeur').textContent = valeurTotal ? valeurTotal.toFixed(2) + ' $' : '—';
+
+  const lignesHtml = v.lignes.map((l, i) => `
+    <div class="verif-ligne ${l.coche ? 'cochee' : ''}" onclick="toggleLigneVerif(${i})">
+      <div class="verif-check">${l.coche ? '✓' : ''}</div>
+      <div class="verif-ligne-info">
+        <div class="verif-ligne-coupe">${l.coupe}${(l.quantite || 1) > 1 ? ` ×${l.quantite}` : ''}</div>
+        <div class="verif-ligne-detail">${l.poids_kg ? l.poids_kg + ' kg' : 'poids ?'}${l.coche && l.scanInfo ? ' · scanné : ' + l.scanInfo : ''}</div>
+      </div>
+      <div class="verif-ligne-prix">${l.prix_total ? l.prix_total.toFixed(2) + ' $' : ''}</div>
+    </div>`).join('');
+
+  const extraHtml = (v.extra || []).map(l => `
+    <div class="verif-ligne extra">
+      <div class="verif-check">＋</div>
+      <div class="verif-ligne-info">
+        <div class="verif-ligne-coupe">${l.coupe}</div>
+        <div class="verif-ligne-detail">hors liste · ${l.poids_kg ? l.poids_kg + ' kg' : 'poids ?'}</div>
+      </div>
+      <div class="verif-ligne-prix">${l.prix_total ? l.prix_total.toFixed(2) + ' $' : ''}</div>
+    </div>`).join('');
+
+  $('verif-liste').innerHTML = lignesHtml
+    + (extraHtml ? `<div class="troupeau-section-title">Morceaux hors liste</div>` + extraHtml : '');
+}
+
+function toggleLigneVerif(i) {
+  const v = verifState();
+  if (!v) return;
+  v.lignes[i].coche = !v.lignes[i].coche;
+  if (!v.lignes[i].coche) delete v.lignes[i].scanInfo;
+  verifSave(); renderVerif();
+}
+
+// Étape 1 : photographier la liste de découpe
+async function scannerListe(file) {
+  showVerifView('analyzing');
+  try {
+    const dataUrl = await fileToDataUrl(file);
+    const base64  = await compresserImage(dataUrl.split(',')[1]);
+    const r = await fetch('/api/scan-liste', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error ?? 'Erreur scan liste');
+    if (!d.result || d.result.liste === false || !d.result.lignes?.length) {
+      showVerifView('idle');
+      toast('Liste illisible — reprenez la photo', 3200);
+      return;
+    }
+    S.verif = {
+      numero_bete: d.result.numero_bete || null,
+      lignes: d.result.lignes.map(l => ({
+        coupe:      l.coupe || '(?)',
+        quantite:   l.quantite || 1,
+        poids_kg:   l.poids_kg   ?? null,
+        prix_total: l.prix_total ?? null,
+        coche:      false,
+      })),
+      extra: [],
+    };
+    verifSave();
+    toast(`✓ Liste lue : ${S.verif.lignes.length} lignes`);
+    renderVerif();
+  } catch (e) {
+    showVerifView('idle');
+    toast('Erreur : ' + e.message.slice(0, 60), 3200);
+  }
+}
+
+// Étape 2 : scanner un morceau et le pointer sur la liste
+async function scannerMorceauVerif(file) {
+  const v = verifState();
+  if (!v) return;
+  showLoader('Analyse du morceau…');
+  try {
+    const dataUrl = await fileToDataUrl(file);
+    const base64  = await compresserImage(dataUrl.split(',')[1]);
+    const result  = await analyzeLabel(base64, 'image/jpeg');
+    hideLoader();
+    if (!result || result.etiquette === false) { toast('Étiquette illisible — réessayez', 3000); return; }
+
+    const coupeScan = normaliserCoupe(result.coupe);
+    const poidsScan = result.poids_kg || null;
+
+    // 1. match coupe identique/incluse, non cochée, poids le plus proche
+    const candidats = v.lignes
+      .map((l, i) => ({ l, i }))
+      .filter(({ l }) => !l.coche)
+      .filter(({ l }) => {
+        const c = normaliserCoupe(l.coupe);
+        return c && coupeScan && (c.includes(coupeScan) || coupeScan.includes(c));
+      });
+
+    if (!candidats.length) {
+      // hors liste
+      v.extra.push({ coupe: result.coupe || '(?)', poids_kg: poidsScan, prix_total: result.total || null });
+      verifSave(); renderVerif();
+      toast(`⚠ "${result.coupe}" pas sur la liste — ajouté en extra`, 3600);
+      return;
+    }
+
+    let meilleur = candidats[0];
+    if (poidsScan && candidats.length > 1) {
+      meilleur = candidats.reduce((best, c) =>
+        Math.abs((c.l.poids_kg ?? 999) - poidsScan) < Math.abs((best.l.poids_kg ?? 999) - poidsScan) ? c : best);
+    }
+    meilleur.l.coche = true;
+    meilleur.l.scanInfo = `${poidsScan ? poidsScan + ' kg' : ''}${result.total ? ' · ' + result.total + ' $' : ''}`.replace(/^ · /, '');
+    verifSave(); renderVerif();
+
+    const restant = v.lignes.filter(l => !l.coche).length;
+    toast(restant === 0 ? '🎉 Commande complète — tout est là !' : `✓ ${result.coupe} pointé · ${restant} restant${restant > 1 ? 's' : ''}`, 3000);
+  } catch (e) {
+    hideLoader();
+    toast('Erreur : ' + e.message.slice(0, 60), 3200);
+  }
+}
+
+function resetVerif() {
+  if (!confirm('Effacer la liste et recommencer ?')) return;
+  S.verif = null;
+  try { localStorage.removeItem(VERIF_KEY); } catch (_) {}
+  showVerifView('idle');
+}
+
+// Helper : ouvrir la caméra et passer le fichier à un handler
+function ouvrirCamera(handler) {
+  const tmp = document.createElement('input');
+  tmp.type = 'file'; tmp.accept = 'image/*'; tmp.capture = 'environment';
+  tmp.addEventListener('change', e => { if (e.target.files[0]) handler(e.target.files[0]); });
+  tmp.click();
+}
+
+// ══════════════════════════════════════════════════════
 //  NAVIGATION TABS
 // ══════════════════════════════════════════════════════
 function switchTab(tab) {
@@ -1048,7 +1587,9 @@ function switchTab(tab) {
     t.setAttribute('aria-selected', active ? 'true' : 'false');
   });
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
-  if (tab === 'stock') loadAndRenderStock();
+  if (tab === 'stock')    loadAndRenderStock();
+  if (tab === 'troupeau') loadTroupeau();
+  if (tab === 'verif')    renderVerif();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1081,6 +1622,16 @@ $('btn-restart').addEventListener('click', recommencerPhoto);
 $('btn-correct').addEventListener('click', corrigerManuellement);
 $('btn-confirm').addEventListener('click', confirmItems);
 $('btn-refresh').addEventListener('click', loadAndRenderStock);
+
+// Troupeau
+$('btn-add-bete').addEventListener('click', ouvrirModalBete);
+$('btn-bete-cancel').addEventListener('click', () => $('modal-bete').classList.remove('show'));
+$('btn-bete-save').addEventListener('click', sauverBete);
+
+// Vérif commande
+$('btn-scan-liste').addEventListener('click', () => ouvrirCamera(scannerListe));
+$('btn-verif-scan').addEventListener('click', () => ouvrirCamera(scannerMorceauVerif));
+$('btn-verif-reset').addEventListener('click', resetVerif);
 
 // Bouton retake (dans le form, au-dessus des champs)
 $('btn-retake').addEventListener('click', recommencerPhoto);
@@ -1180,6 +1731,14 @@ $('chat-input').addEventListener('input', function () {
   updateCounter();
   showView('idle');
   appendMsg('agent', `Bonjour ! Je suis l'agent ${CLIENT_CONFIG.name}. Chargez le stock dans l'onglet Stock, puis posez-moi vos questions.`);
+
+  // Charger le troupeau en arrière-plan (remplit le sélecteur Bête du scanner)
+  fetch('/api/troupeau').then(r => r.json()).then(d => {
+    if (d.ok) { S.troupeau = d.troupeau || []; remplirSelectBetes(); }
+  }).catch(() => {});
+
+  // Restaurer une vérification de commande en cours (test client)
+  if (verifState()) renderVerif();
 })();
 </script>
 </body>
