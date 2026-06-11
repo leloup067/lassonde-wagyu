@@ -278,6 +278,39 @@ function upsertBete(data) {
   return db.prepare('SELECT * FROM betes WHERE numero_bete = ?').get(data.numero_bete || 1);
 }
 
+// Import en masse (liste papier scannée ou CSV) — transaction unique
+function importerBetes(rows) {
+  let maxNum = db.prepare('SELECT COALESCE(MAX(numero_bete), 0) AS m FROM betes').get().m;
+  const existeTag = db.prepare('SELECT 1 FROM betes WHERE tag_atq = ?');
+  const existeNum = db.prepare('SELECT 1 FROM betes WHERE numero_bete = ?');
+  const insert = db.prepare(`
+    INSERT INTO betes (numero_bete, tag_atq, nom, type, date_naissance, poids_vif_kg, race, notes, statut)
+    VALUES (@numero_bete, @tag_atq, @nom, @type, @date_naissance, @poids_vif_kg, @race, @notes, 'pâturage')
+  `);
+  let ajouts = 0, doublons = 0;
+  db.transaction(() => {
+    for (const r of rows) {
+      const tag = (r.tag_atq || '').toString().trim() || null;
+      if (tag && existeTag.get(tag)) { doublons++; continue; }
+      let num = parseInt(r.numero_bete) || 0;
+      if (!num || existeNum.get(num)) num = ++maxNum;
+      else maxNum = Math.max(maxNum, num);
+      insert.run({
+        numero_bete:    num,
+        tag_atq:        tag,
+        nom:            (r.nom   || '').toString().trim().slice(0, 80)  || null,
+        type:           ['bœuf', 'veau', 'vache'].includes(r.type) ? r.type : 'bœuf',
+        date_naissance: (r.date_naissance || '').toString().trim().slice(0, 10) || null,
+        poids_vif_kg:   parseFloat(r.poids_vif_kg) || null,
+        race:           (r.race  || '').toString().trim().slice(0, 60)  || 'Wagyu',
+        notes:          (r.notes || '').toString().trim().slice(0, 200) || null,
+      });
+      ajouts++;
+    }
+  })();
+  return { ajouts, doublons };
+}
+
 // Troupeau complet : chaque bête + agrégats des morceaux scannés (liés par numero_bete)
 function getTroupeau() {
   return db.prepare(`
@@ -412,6 +445,7 @@ module.exports = {
   getInventaire,
   getResume,
   upsertBete,
+  importerBetes,
   getBetes,
   getTroupeau,
   setStatutBete,

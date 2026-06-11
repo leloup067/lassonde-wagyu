@@ -375,6 +375,47 @@ button,label[for],[role=button]{cursor:pointer}
   text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
 .troupeau-section-title:first-child{margin-top:0}
 
+/* ── TROUPEAU HEADER + RECHERCHE ── */
+#troupeau-header-btns{display:flex;gap:8px}
+#btn-import-troupeau{background:transparent;border:1px solid var(--gold);color:var(--gold);
+  border-radius:8px;padding:8px 14px;font-family:sans-serif;font-size:13px;font-weight:600}
+#troupeau-search{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);
+  border-radius:10px;padding:11px 14px;font-size:14px;font-family:sans-serif;margin-bottom:14px;
+  -webkit-appearance:none}
+#troupeau-search::placeholder{color:var(--muted)}
+
+/* ── MODAL IMPORT TROUPEAU ── */
+#modal-import{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;
+  align-items:flex-end;justify-content:center;z-index:60}
+#modal-import.show{display:flex}
+#modal-import-inner{background:var(--bg);border:1px solid var(--border);border-radius:16px 16px 0 0;
+  padding:20px 18px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:480px;
+  max-height:86vh;overflow-y:auto}
+#modal-import-inner h3{color:var(--gold);font-size:16px;margin:0 0 14px}
+.import-opt{display:block;width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:16px 14px;margin-bottom:10px;text-align:left;color:var(--text)}
+.import-opt:active{border-color:var(--gold)}
+.import-opt-icon{font-size:22px;margin-right:10px;vertical-align:middle}
+.import-opt-label{font-size:15px;vertical-align:middle}
+.import-opt small{display:block;font-family:sans-serif;font-size:11px;color:var(--muted);margin-top:5px}
+#btn-import-close{display:block;width:100%;background:transparent;border:1px solid var(--border);
+  color:var(--muted);border-radius:10px;padding:12px;font-family:sans-serif;font-size:13px;margin-top:4px}
+#import-analyzing{display:flex;flex-direction:column;align-items:center;gap:18px;
+  padding:40px 20px;font-family:sans-serif;font-size:13px;color:var(--muted)}
+#import-count{font-family:sans-serif;font-size:13px;color:var(--gold);margin-bottom:10px;font-weight:600}
+#import-rows{max-height:38vh;overflow-y:auto;margin-bottom:12px}
+.import-row{display:flex;justify-content:space-between;gap:8px;background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:5px;
+  font-family:sans-serif;font-size:12px}
+.import-row-tag{color:var(--text);font-weight:600}
+.import-row-detail{color:var(--muted);white-space:nowrap}
+#btn-import-more{display:block;width:100%;background:transparent;border:1px dashed var(--gold);
+  color:var(--gold);border-radius:10px;padding:11px;font-family:sans-serif;font-size:13px;margin-bottom:12px}
+#modal-import-btns{display:flex;gap:10px}
+#modal-import-btns button{flex:1;border-radius:10px;padding:13px;font-family:sans-serif;font-size:14px}
+#btn-import-cancel{background:transparent;border:1px solid var(--border);color:var(--muted)}
+#btn-import-ok{background:var(--gold);border:none;color:#0a0a0a;font-weight:700}
+
 /* ── MODAL BÊTE ── */
 #modal-bete{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;
   align-items:flex-end;justify-content:center;z-index:60}
@@ -553,8 +594,12 @@ button,label[for],[role=button]{cursor:pointer}
     <div id="panel-troupeau" class="panel">
       <div id="troupeau-header">
         <span id="troupeau-title">Troupeau</span>
-        <button id="btn-add-bete" aria-label="Ajouter une bête">＋ Ajouter</button>
+        <div id="troupeau-header-btns">
+          <button id="btn-import-troupeau" aria-label="Importer la liste complète du troupeau">⇪ Liste</button>
+          <button id="btn-add-bete" aria-label="Ajouter une bête">＋ Ajouter</button>
+        </div>
       </div>
+      <input type="search" id="troupeau-search" placeholder="Chercher : tag ATQ, numéro, nom…" aria-label="Chercher une bête">
       <div id="troupeau-body">
         <div class="empty-state"><div>🐂</div>Chargement du troupeau…</div>
       </div>
@@ -678,6 +723,45 @@ button,label[for],[role=button]{cursor:pointer}
   <button id="btn-confirm">✓ Confirmer</button>
 </div>
 <div id="cam-flash"></div>
+
+<!-- Modal : import troupeau en masse -->
+<div id="modal-import">
+  <div id="modal-import-inner">
+    <h3>Importer le troupeau</h3>
+
+    <!-- Étape 1 : choix de la source -->
+    <div id="import-choix">
+      <button class="import-opt" id="btn-import-photo">
+        <span class="import-opt-icon">📷</span>
+        <span class="import-opt-label">Photo de la liste papier</span>
+        <small>Registre, cahier, document imprimé — plusieurs pages possibles</small>
+      </button>
+      <button class="import-opt" id="btn-import-csv">
+        <span class="import-opt-icon">📎</span>
+        <span class="import-opt-label">Fichier CSV</span>
+        <small>Export Excel / ATQ — colonnes : tag, naissance, poids, type…</small>
+      </button>
+      <button id="btn-import-close">Annuler</button>
+    </div>
+
+    <!-- Étape 2 : analyse en cours -->
+    <div id="import-analyzing" style="display:none">
+      <div class="wave-dots"><div class="wave-dot"></div><div class="wave-dot"></div><div class="wave-dot"></div></div>
+      <span>Lecture de la liste…</span>
+    </div>
+
+    <!-- Étape 3 : aperçu avant import -->
+    <div id="import-preview" style="display:none">
+      <div id="import-count"></div>
+      <div id="import-rows"></div>
+      <button id="btn-import-more">📷 Ajouter une page</button>
+      <div id="modal-import-btns">
+        <button id="btn-import-cancel">Annuler</button>
+        <button id="btn-import-ok">✓ Importer</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal : ajouter/éditer une bête -->
 <div id="modal-bete">
@@ -1304,29 +1388,48 @@ function renderBeteCard(b) {
   </div>`;
 }
 
+function renderTroupeau() {
+  const body = $('troupeau-body');
+  const troupeau = S.troupeau || [];
+  if (!troupeau.length) {
+    body.innerHTML = '<div class="empty-state"><div>🐂</div>Aucune bête — ＋ Ajouter (une par une) ou ⇪ Liste (import complet)</div>';
+    return;
+  }
+
+  // Filtre recherche : tag ATQ, numéro ou nom
+  const q = normaliserCoupe($('troupeau-search').value);
+  const filtre = q
+    ? troupeau.filter(b =>
+        normaliserCoupe(b.tag_atq).includes(q) ||
+        String(b.numero_bete).includes(q) ||
+        normaliserCoupe(b.nom).includes(q))
+    : troupeau;
+
+  if (!filtre.length) {
+    body.innerHTML = '<div class="empty-state"><div>🔍</div>Aucune bête ne correspond à la recherche</div>';
+    return;
+  }
+
+  const vivants = filtre.filter(b => b.statut === 'pâturage' || b.statut === 'abattoir');
+  const frigo   = filtre.filter(b => b.statut === 'frigo');
+  const vendus  = filtre.filter(b => b.statut === 'vendu');
+
+  let html = '';
+  if (vivants.length) html += `<div class="troupeau-section-title">🌿 En pâturage (${vivants.length})</div>` + vivants.map(renderBeteCard).join('');
+  if (frigo.length)   html += `<div class="troupeau-section-title">❄️ Au frigo — prêt à manger (${frigo.length})</div>` + frigo.map(renderBeteCard).join('');
+  if (vendus.length)  html += `<div class="troupeau-section-title">Vendus (${vendus.length})</div>` + vendus.map(renderBeteCard).join('');
+  body.innerHTML = html;
+}
+
 async function loadTroupeau() {
   const body = $('troupeau-body');
   try {
     const r = await fetch('/api/troupeau');
     const d = await r.json();
     if (!d.ok) throw new Error(d.error);
-    const troupeau = d.troupeau || [];
-    S.troupeau = troupeau;
+    S.troupeau = d.troupeau || [];
     remplirSelectBetes();
-
-    if (!troupeau.length) {
-      body.innerHTML = '<div class="empty-state"><div>🐂</div>Aucune bête — ajoutez votre troupeau avec ＋ Ajouter</div>';
-      return;
-    }
-    const vivants = troupeau.filter(b => b.statut === 'pâturage' || b.statut === 'abattoir');
-    const frigo   = troupeau.filter(b => b.statut === 'frigo');
-    const vendus  = troupeau.filter(b => b.statut === 'vendu');
-
-    let html = '';
-    if (vivants.length) html += `<div class="troupeau-section-title">🌿 En pâturage (${vivants.length})</div>` + vivants.map(renderBeteCard).join('');
-    if (frigo.length)   html += `<div class="troupeau-section-title">❄️ Au frigo — prêt à manger (${frigo.length})</div>` + frigo.map(renderBeteCard).join('');
-    if (vendus.length)  html += `<div class="troupeau-section-title">Vendus (${vendus.length})</div>` + vendus.map(renderBeteCard).join('');
-    body.innerHTML = html;
+    renderTroupeau();
   } catch (e) {
     body.innerHTML = `<div class="empty-state"><div>⚠️</div>${e.message}</div>`;
   }
@@ -1395,6 +1498,158 @@ async function sauverBete() {
     toast(`✓ Bête #${numero} ajoutée au troupeau`);
     loadTroupeau();
   } catch (e) { toast('Erreur : ' + e.message, 3200); }
+}
+
+// ══════════════════════════════════════════════════════
+//  IMPORT TROUPEAU EN MASSE — photo du registre ou CSV
+// ══════════════════════════════════════════════════════
+function showImportStep(step) {
+  $('import-choix').style.display     = step === 'choix'     ? '' : 'none';
+  $('import-analyzing').style.display = step === 'analyzing' ? 'flex' : 'none';
+  $('import-preview').style.display   = step === 'preview'   ? '' : 'none';
+}
+
+function ouvrirModalImport() {
+  S.importBetes = [];
+  showImportStep('choix');
+  $('modal-import').classList.add('show');
+}
+
+function fermerModalImport() {
+  $('modal-import').classList.remove('show');
+  S.importBetes = [];
+}
+
+function renderImportPreview() {
+  const betes = S.importBetes || [];
+  $('import-count').textContent = `${betes.length} bête${betes.length > 1 ? 's' : ''} détectée${betes.length > 1 ? 's' : ''}`;
+  const MAX_AFFICHE = 60;
+  $('import-rows').innerHTML = betes.slice(0, MAX_AFFICHE).map(b => `
+    <div class="import-row">
+      <span class="import-row-tag">${b.tag_atq || b.nom || '(sans tag)'}</span>
+      <span class="import-row-detail">${[b.type, b.date_naissance, b.poids_vif_kg ? b.poids_vif_kg + ' kg' : null].filter(Boolean).join(' · ') || '—'}</span>
+    </div>`).join('')
+    + (betes.length > MAX_AFFICHE ? `<div class="import-row"><span class="import-row-detail">… et ${betes.length - MAX_AFFICHE} autres</span></div>` : '');
+  showImportStep('preview');
+}
+
+// Photo du registre papier → Claude Vision (cumulable sur plusieurs pages)
+async function importerPagePhoto(file) {
+  showImportStep('analyzing');
+  try {
+    const dataUrl = await fileToDataUrl(file);
+    const base64  = await compresserImage(dataUrl.split(',')[1]);
+    const r = await fetch('/api/scan-liste-betes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error ?? 'Erreur scan registre');
+    if (!d.result || d.result.liste === false || !d.result.betes?.length) {
+      toast('Liste illisible — reprenez la photo', 3200);
+      S.importBetes.length ? renderImportPreview() : showImportStep('choix');
+      return;
+    }
+    // Dédoublonne par tag au sein de l'import (pages qui se chevauchent)
+    const tagsExistants = new Set(S.importBetes.map(b => (b.tag_atq || '').replace(/\s/g, '')));
+    const nouvelles = d.result.betes.filter(b => {
+      const t = (b.tag_atq || '').replace(/\s/g, '');
+      return !t || !tagsExistants.has(t);
+    });
+    S.importBetes.push(...nouvelles);
+    toast(`✓ Page lue : ${nouvelles.length} bêtes ajoutées`);
+    renderImportPreview();
+  } catch (e) {
+    toast('Erreur : ' + e.message.slice(0, 60), 3200);
+    S.importBetes.length ? renderImportPreview() : showImportStep('choix');
+  }
+}
+
+// Fichier CSV (export Excel / ATQ) — mapping souple des colonnes
+function parseCSVBetes(text) {
+  const lignes = text.split(/\r?\n/).filter(l => l.trim());
+  if (lignes.length < 2) return [];
+  const sep = (lignes[0].match(/;/g) || []).length > (lignes[0].match(/,/g) || []).length ? ';' : ',';
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const headers = lignes[0].split(sep).map(norm);
+  const idx = (...keys) => headers.findIndex(h => keys.some(k => h.includes(k)));
+
+  const iTag   = idx('tag', 'atq', 'boucle', 'identif');
+  const iNais  = idx('naiss', 'ddn', 'birth');
+  const iPoids = idx('poids', 'weight', 'kg');
+  const iType  = idx('type', 'sexe', 'categ');
+  const iNom   = idx('nom', 'name');
+  const iRace  = idx('race', 'breed');
+  const iNum   = idx('numero', 'no ', '#');
+  const iNotes = idx('note', 'comment', 'remarque');
+
+  const convDate = v => {
+    if (!v) return null;
+    v = v.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
+    const m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+  };
+  const convType = v => {
+    const t = norm(v || '');
+    if (t.includes('veau')) return 'veau';
+    if (t.includes('vache') || t.startsWith('f')) return 'vache';
+    return 'bœuf';
+  };
+
+  return lignes.slice(1).map(l => {
+    const c = l.split(sep).map(v => v.replace(/^"|"$/g, '').trim());
+    return {
+      tag_atq:        iTag   >= 0 ? c[iTag]   || null : null,
+      nom:            iNom   >= 0 ? c[iNom]   || null : null,
+      type:           iType  >= 0 ? convType(c[iType]) : 'bœuf',
+      date_naissance: iNais  >= 0 ? convDate(c[iNais]) : null,
+      poids_vif_kg:   iPoids >= 0 ? parseFloat((c[iPoids] || '').replace(',', '.')) || null : null,
+      race:           iRace  >= 0 ? c[iRace]  || null : null,
+      numero_bete:    iNum   >= 0 ? parseInt(c[iNum]) || null : null,
+      notes:          iNotes >= 0 ? c[iNotes] || null : null,
+    };
+  }).filter(b => b.tag_atq || b.nom || b.numero_bete);
+}
+
+function importerFichierCSV(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const betes = parseCSVBetes(e.target.result);
+    if (!betes.length) { toast('CSV vide ou colonnes non reconnues (tag/naissance/poids…)', 3600); return; }
+    S.importBetes.push(...betes);
+    renderImportPreview();
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+async function confirmerImport() {
+  const betes = S.importBetes || [];
+  if (!betes.length) return;
+  $('btn-import-ok').disabled = true;
+  showLoader(`Import de ${betes.length} bêtes…`);
+  try {
+    const r = await fetch('/api/troupeau/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ betes }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    toast(`✓ ${d.ajouts} bêtes importées` + (d.doublons ? ` · ${d.doublons} doublons ignorés` : ''), 4000);
+    fermerModalImport();
+    loadTroupeau();
+  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3400); }
+  finally { $('btn-import-ok').disabled = false; hideLoader(); }
+}
+
+// Sélecteur de fichier générique (galerie / fichiers, sans forcer la caméra)
+function ouvrirFichier(accept, handler) {
+  const tmp = document.createElement('input');
+  tmp.type = 'file'; tmp.accept = accept;
+  tmp.addEventListener('change', e => { if (e.target.files[0]) handler(e.target.files[0]); });
+  tmp.click();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1627,6 +1882,16 @@ $('btn-refresh').addEventListener('click', loadAndRenderStock);
 $('btn-add-bete').addEventListener('click', ouvrirModalBete);
 $('btn-bete-cancel').addEventListener('click', () => $('modal-bete').classList.remove('show'));
 $('btn-bete-save').addEventListener('click', sauverBete);
+$('troupeau-search').addEventListener('input', renderTroupeau);
+
+// Import troupeau en masse
+$('btn-import-troupeau').addEventListener('click', ouvrirModalImport);
+$('btn-import-close').addEventListener('click', fermerModalImport);
+$('btn-import-cancel').addEventListener('click', fermerModalImport);
+$('btn-import-photo').addEventListener('click', () => ouvrirFichier('image/*', importerPagePhoto));
+$('btn-import-more').addEventListener('click', () => ouvrirFichier('image/*', importerPagePhoto));
+$('btn-import-csv').addEventListener('click', () => ouvrirFichier('.csv,text/csv', importerFichierCSV));
+$('btn-import-ok').addEventListener('click', confirmerImport);
 
 // Vérif commande
 $('btn-scan-liste').addEventListener('click', () => ouvrirCamera(scannerListe));

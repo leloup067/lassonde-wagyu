@@ -54,6 +54,7 @@
 - TROUPEAU: inventaire bêtes vivantes (pâturage) + abattues (frigo) — tag ATQ MAPAQ, naissance, poids vif, âge, ETA abattage 30 mois — statuts pâturage→abattoir→frigo→vendu — agrégats morceaux/poids/valeur par bête (lien numero_bete dans inventaire)
 - VÉRIF COMMANDE: client photographie sa liste de découpe (/api/scan-liste Claude vision) → checklist → scanne chaque morceau → pointage auto fuzzy (coupe+poids) → progression + poids total + valeur totale — persist localStorage
 - Scanner: champ "Bête (tag ATQ)" lie chaque sac scanné à une bête
+- IMPORT TROUPEAU EN MASSE: photo registre papier (vision multi-pages) ou CSV — doublons tag ATQ ignorés — recherche tag/numéro/nom — /api/troupeau/import + /api/scan-liste-betes
 
 ## FEATURES À FAIRE ❌
 - Mode stock caché / drops contrôlés (Shopify status=draft)

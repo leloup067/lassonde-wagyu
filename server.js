@@ -129,6 +129,88 @@ app.post('/api/troupeau', (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Import en masse du troupeau (liste papier scannée ou CSV) — max 2000 bêtes
+app.post('/api/troupeau/import', (req, res) => {
+  try {
+    const { betes } = req.body;
+    if (!Array.isArray(betes) || !betes.length) {
+      return res.status(400).json({ ok: false, error: 'betes (tableau non vide) requis' });
+    }
+    if (betes.length > 2000) {
+      return res.status(400).json({ ok: false, error: 'maximum 2000 bêtes par import' });
+    }
+    const resultat = db.importerBetes(betes);
+    res.json({ ok: true, ...resultat });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Scan vision d'un REGISTRE DE TROUPEAU papier (liste des bêtes de la ferme)
+app.post('/api/scan-liste-betes', async (req, res) => {
+  res.setTimeout(180000);
+  try {
+    const { image, mimeType = 'image/jpeg' } = req.body;
+    if (!image) return res.status(400).json({ ok: false, error: 'image base64 requise' });
+    if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ ok: false, error: 'Clé Anthropic manquante' });
+
+    const REGISTRE_PROMPT = `Tu analyses la photo d'un REGISTRE DE TROUPEAU bovin québécois (liste des animaux vivants d'une ferme — Les Élevages Lassonde).
+Chaque ligne = un animal, identifié par son tag ATQ (boucle d'oreille Agri-Traçabilité Québec, souvent 15 chiffres commençant par 124).
+Si l'image ne contient PAS une liste d'animaux, réponds {"liste":false}.
+Sinon, réponds UNIQUEMENT avec ce JSON (sans texte avant ni après) :
+{
+  "liste": true,
+  "betes": [
+    { "tag_atq": "124000312456789", "nom": null, "type": "bœuf", "date_naissance": "2024-02-10", "poids_vif_kg": 615, "race": "Wagyu", "notes": null }
+  ]
+}
+Règles :
+- Une entrée par ligne du registre, dans l'ordre.
+- type : "bœuf", "veau" ou "vache" — déduis du sexe/catégorie si présent (mâle/bouvillon → bœuf, femelle → vache), sinon null.
+- date_naissance convertie en YYYY-MM-DD. null si absente ou illisible.
+- poids_vif_kg : nombre en kg. null si absent. Ne devine JAMAIS un chiffre.
+- Garde les tags ATQ EXACTEMENT comme écrits (chiffres et espaces).`;
+
+    const result = await new Promise((resolve, reject) => {
+      const body = JSON.stringify({
+        model: 'claude-opus-4-7',
+        max_tokens: 8192,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: mimeType, data: image } },
+          { type: 'text', text: REGISTRE_PROMPT },
+        ]}],
+      });
+      const request = https.request({
+        hostname: 'api.anthropic.com',
+        path: '/v1/messages',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      }, resp => {
+        let data = '';
+        resp.on('data', d => data += d);
+        resp.on('end', () => {
+          try {
+            const j = JSON.parse(data);
+            if (j.error) return reject(new Error(j.error.message));
+            const text = j.content?.[0]?.text ?? '';
+            const m = text.match(/\{[\s\S]*\}/);
+            if (!m) return reject(new Error('Réponse Claude invalide: ' + text.slice(0, 100)));
+            resolve(JSON.parse(m[0]));
+          } catch (e) { reject(e); }
+        });
+      });
+      request.on('error', reject);
+      request.write(body);
+      request.end();
+    });
+
+    res.json({ ok: true, result });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // Changer le statut d'une bête : pâturage → abattoir → frigo → vendu
 app.put('/api/troupeau/:numero/statut', (req, res) => {
   try {
