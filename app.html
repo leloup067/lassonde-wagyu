@@ -384,6 +384,13 @@ button,label[for],[role=button]{cursor:pointer}
   -webkit-appearance:none}
 #troupeau-search::placeholder{color:var(--muted)}
 
+/* ── X FERMER (haut-droite de tous les modals) ── */
+.modal-close-x{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);
+  font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;z-index:5}
+.modal-close-x:active{color:var(--gold);border-color:var(--gold)}
+#modal-inner,#modal-bete-inner,#modal-import-inner{position:relative}
+
 /* ── MODAL IMPORT TROUPEAU ── */
 #modal-import{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;
   align-items:flex-end;justify-content:center;z-index:60}
@@ -727,6 +734,7 @@ button,label[for],[role=button]{cursor:pointer}
 <!-- Modal : import troupeau en masse -->
 <div id="modal-import">
   <div id="modal-import-inner">
+    <button class="modal-close-x" id="x-import" aria-label="Fermer">✕</button>
     <h3>Importer le troupeau</h3>
 
     <!-- Étape 1 : choix de la source -->
@@ -766,6 +774,7 @@ button,label[for],[role=button]{cursor:pointer}
 <!-- Modal : ajouter/éditer une bête -->
 <div id="modal-bete">
   <div id="modal-bete-inner">
+    <button class="modal-close-x" id="x-bete" aria-label="Fermer">✕</button>
     <h3 id="modal-bete-title">Ajouter une bête</h3>
     <div class="card-group">
       <div class="card-group-title">Identification</div>
@@ -803,6 +812,7 @@ button,label[for],[role=button]{cursor:pointer}
 <!-- Modal : même coupe -->
 <div id="modal-dup">
   <div id="modal-inner">
+    <button class="modal-close-x" id="x-dup" aria-label="Fermer">✕</button>
     <h3>Même coupe</h3>
     <p>Combien de sacs identiques ?</p>
     <input type="number" id="dup-count-input" value="2" min="1" max="99">
@@ -1883,6 +1893,14 @@ $('btn-add-bete').addEventListener('click', ouvrirModalBete);
 $('btn-bete-cancel').addEventListener('click', () => $('modal-bete').classList.remove('show'));
 $('btn-bete-save').addEventListener('click', sauverBete);
 $('troupeau-search').addEventListener('input', renderTroupeau);
+
+// X fermer (haut-droite) + tap sur le fond = fermer
+$('x-bete').addEventListener('click', () => $('modal-bete').classList.remove('show'));
+$('x-import').addEventListener('click', fermerModalImport);
+$('x-dup').addEventListener('click', () => $('modal-dup').classList.remove('show'));
+$('modal-bete').addEventListener('click', e => { if (e.target.id === 'modal-bete') $('modal-bete').classList.remove('show'); });
+$('modal-import').addEventListener('click', e => { if (e.target.id === 'modal-import') fermerModalImport(); });
+$('modal-dup').addEventListener('click', e => { if (e.target.id === 'modal-dup') $('modal-dup').classList.remove('show'); });
 
 // Import troupeau en masse
 $('btn-import-troupeau').addEventListener('click', ouvrirModalImport);
