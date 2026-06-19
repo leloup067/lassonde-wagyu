@@ -3,10 +3,18 @@
 
 const Database = require('better-sqlite3');
 const path     = require('path');
+const fs       = require('fs');
 
-const db = new Database(path.join(__dirname, 'lassonde.db'));
+// Stocke la DB sur le disque persistant Railway si dispo (RAILWAY_VOLUME_MOUNT_PATH),
+// sinon dans le dossier de l'app (local). Évite la perte de données à chaque deploy.
+const DB_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.DB_DIR || __dirname;
+try { fs.mkdirSync(DB_DIR, { recursive: true }); } catch (_) {}
+const DB_PATH = path.join(DB_DIR, 'lassonde.db');
+
+const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+console.log(`📦 DB : ${DB_PATH}${process.env.RAILWAY_VOLUME_MOUNT_PATH ? ' (disque persistant ✅)' : ' (local)'}`);
 
 // ─── SCHÉMA ──────────────────────────────────────────────────────────────────
 db.exec(`
