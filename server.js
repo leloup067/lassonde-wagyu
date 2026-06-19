@@ -100,6 +100,15 @@ app.put('/api/inventaire/:id', (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Retirer un sac de l'inventaire (erreur de scan, doublon…)
+app.delete('/api/inventaire/:id', (req, res) => {
+  try {
+    const r = db.supprimerSac(parseInt(req.params.id));
+    if (!r.changes) return res.status(404).json({ ok: false, error: 'sac introuvable' });
+    res.json({ ok: true, supprime: r.changes });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ─── API BÊTES ────────────────────────────────────────────────────────────────
 app.get('/api/betes', (req, res) => {
   try { res.json({ ok: true, betes: db.getBetes() }); }

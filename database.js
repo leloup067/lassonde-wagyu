@@ -201,6 +201,10 @@ function getSac(id) {
   return db.prepare('SELECT * FROM inventaire WHERE id = ?').get(id);
 }
 
+function supprimerSac(id) {
+  return db.prepare('DELETE FROM inventaire WHERE id = ?').run(id);
+}
+
 function getInventaire({ statut, coupe, limit = 200 } = {}) {
   let sql = 'SELECT * FROM inventaire WHERE 1=1';
   const params = [];
@@ -442,6 +446,7 @@ module.exports = {
   insertSac,
   updateStatut,
   getSac,
+  supprimerSac,
   getInventaire,
   getResume,
   upsertBete,

@@ -295,6 +295,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 .stock-item-name{font-size:14px;margin-bottom:3px}
 .stock-item-sku{font-size:10px;color:var(--muted);font-family:sans-serif}
 .stock-item-price{font-size:14px;color:var(--gold)}
+.stock-del{flex-shrink:0;margin-left:10px;width:30px;height:30px;border-radius:50%;
+  background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);
+  font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center}
+.stock-del:active{background:rgba(230,90,90,.18);border-color:var(--red);color:var(--red)}
 .stock-badge{display:inline-block;padding:2px 7px;border-radius:4px;
   font-family:sans-serif;font-size:10px;font-weight:bold;margin-top:3px}
 .badge-ok{background:#1a3a2a;color:var(--green)}
@@ -631,8 +635,8 @@ button,label[for],[role=button]{cursor:pointer}
         </div>
         <div class="card-group">
           <div class="card-group-title">Traçabilité</div>
-          <div class="field"><label>Meilleur avant</label>
-            <input type="date" id="f-mb"></div>
+          <div class="field"><label>Date scannée</label>
+            <input type="date" id="f-mb" disabled style="opacity:.7"></div>
           <div class="field"><label>Bête (tag ATQ)</label>
             <select id="f-bete"><option value="">— aucune —</option></select></div>
         </div>
@@ -986,6 +990,7 @@ function showLoader(t = '') { $('loader-text').textContent = t; $('loader').clas
 function hideLoader()       { $('loader').classList.remove('visible'); }
 function pause(ms)          { return new Promise(r => setTimeout(r, ms)); }
 function fmtPrice(v)        { const n = parseFloat(v); return isNaN(n) ? '—' : n.toFixed(2) + ' $'; }
+function todayISO()         { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 
 // ══════════════════════════════════════════════════════
 //  COMPTEUR SESSION (header)
@@ -1135,20 +1140,18 @@ function populateForm(data, photoSrc) {
   $('f-poids').value   = data.poids   || '';
   $('f-prix-kg').value = data.prix_kg != null ? data.prix_kg : '';
   $('f-total').value   = data.total   != null ? data.total   : '';
-  $('f-mb').value      = data.meilleur_avant || '';
+  $('f-mb').value      = todayISO();   // date du scan = aujourd'hui
 
   // Détection champs suspects
   const suspects = [];
   if (!data.coupe || data.coupe.length < 3)          suspects.push('coupe');
   if (!data.poids_kg || data.poids_kg <= 0)           suspects.push('poids');
   if (!data.total || data.total <= 0)                 suspects.push('prix');
-  if (!data.meilleur_avant)                           suspects.push('date');
 
   // Highlight champs manquants / suspects
   $('f-coupe').classList.toggle('missing',   suspects.includes('coupe') || !$('f-coupe').value);
   $('f-total').classList.toggle('missing',   suspects.includes('prix')  || !$('f-total').value);
   $('f-poids').classList.toggle('missing',   suspects.includes('poids'));
-  $('f-mb').classList.toggle('missing',      suspects.includes('date'));
 
   // Conseils photo selon le premier champ suspect
   const CONSEILS = {
@@ -1480,7 +1483,6 @@ function renderBurstReview() {
             <input class="bc-poids" type="text" placeholder="Poids" value="${r.poids || (r.poids_kg ? r.poids_kg + ' kg' : '')}">
             <input class="bc-total ${!r.total ? 'missing' : ''}" type="number" step="0.01" placeholder="Total $" value="${r.total != null ? r.total : ''}">
           </div>
-          <input class="bc-mb" type="date" value="${r.meilleur_avant || ''}">
         </div>
       </div>
       ${flag}
@@ -1498,9 +1500,8 @@ function lireBurstCards() {
     const coupe = card.querySelector('.bc-coupe').value.trim();
     const poids = card.querySelector('.bc-poids').value.trim();
     const total = parseFloat(card.querySelector('.bc-total').value) || 0;
-    const mb    = card.querySelector('.bc-mb').value || null;
     const poidsKg = parseFloat(poids) || 0;
-    return { id, item, coupe, poidsKg, total, mb,
+    return { id, item, coupe, poidsKg, total,
              prixKg: poidsKg > 0 ? Math.round(total / poidsKg * 100) / 100 : 0 };
   });
 }
@@ -1539,7 +1540,6 @@ async function confirmBurst() {
           poids_kg:       c.poidsKg,
           prix_kg:        c.prixKg,
           prix_total:     c.total,
-          meilleur_avant: c.mb,
           numero_bete:    numeroBete,
         }),
       });
@@ -1611,15 +1611,27 @@ function renderLocalStock(items) {
         <div class="stock-item">
           <div>
             <div class="stock-item-name">${item.coupe}</div>
-            <div class="stock-item-sku">${item.poids_kg.toFixed(3)} kg · exp. ${item.meilleur_avant || '?'}</div>
+            <div class="stock-item-sku">${item.poids_kg.toFixed(3)} kg · scanné ${(item.date_scan || '').slice(0,10) || '?'}</div>
           </div>
           <div style="text-align:right">
             <div class="stock-item-price">${item.prix_total.toFixed(2)} $</div>
             <div style="font-size:10px;color:var(--muted);font-family:sans-serif">${item.prix_kg.toFixed(2)} $/kg</div>
             <span class="stock-badge badge-ok">Disponible</span>
           </div>
+          <button class="stock-del" onclick="deleteStockItem(${item.id}, '${(item.coupe || '').replace(/'/g, '’')}')" aria-label="Retirer ce sac">✕</button>
         </div>`).join('')}
     </div>`).join('');
+}
+
+async function deleteStockItem(id, coupe) {
+  if (!confirm(`Retirer ce sac${coupe ? ' de ' + coupe : ''} de l'inventaire ?`)) return;
+  try {
+    const r = await fetch(`/api/inventaire/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    toast('✓ Sac retiré');
+    loadAndRenderStock();
+  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
 }
 
 async function loadShopifyStock(body) {
@@ -2203,6 +2215,8 @@ function switchTab(tab) {
     t.setAttribute('aria-selected', active ? 'true' : 'false');
   });
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+  // La barre Confirmer/Recommencer ne doit apparaître que sur le Scanner en mode formulaire
+  $('form-actions').style.display = (tab === 'scanner' && $('view-form').style.display !== 'none') ? 'flex' : 'none';
   if (tab === 'stock')    loadAndRenderStock();
   if (tab === 'troupeau') loadTroupeau();
   if (tab === 'verif')    renderVerif();
