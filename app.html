@@ -78,6 +78,64 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 #btn-camera-label{font-family:sans-serif;font-size:12px;color:var(--muted);text-align:center}
 #btn-upload{background:none;border:1px solid var(--border);border-radius:8px;
   color:var(--gold);font-family:sans-serif;font-size:13px;cursor:pointer;padding:9px 20px}
+#btn-burst{background:rgba(200,169,110,.1);border:1px solid var(--gold);border-radius:10px;
+  color:var(--gold);font-family:sans-serif;font-size:14px;font-weight:600;cursor:pointer;padding:12px 24px}
+#btn-burst:active{background:rgba(200,169,110,.2)}
+
+/* VIEW: BURST CAPTURE */
+#view-burst-capture{flex:1;display:flex;flex-direction:column;padding:20px;gap:12px}
+#burst-cap-head{text-align:center;margin-bottom:4px}
+#burst-cap-count{font-size:22px;color:var(--gold)}
+#burst-cap-sub{font-family:sans-serif;font-size:12px;color:var(--muted);margin-top:4px}
+#burst-thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:1;
+  align-content:start;overflow-y:auto;min-height:80px;max-height:42vh}
+.burst-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;
+  border:1px solid var(--border);background:var(--surface)}
+.burst-thumb img{width:100%;height:100%;object-fit:cover}
+.burst-thumb-state{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:16px;background:rgba(0,0,0,.45)}
+.burst-thumb-state.ok{background:rgba(110,200,130,.25);color:#7fd494}
+.burst-thumb-state.err{background:rgba(230,90,90,.3);color:#ff8a8a}
+.burst-thumb-x{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
+  background:rgba(0,0,0,.6);color:#fff;font-size:11px;line-height:18px;text-align:center;border:none}
+#btn-burst-next{background:var(--surface);border:2px solid var(--gold);border-radius:12px;
+  color:var(--gold);font-family:sans-serif;font-size:15px;font-weight:700;padding:15px}
+#btn-burst-next:active{background:#1a1408}
+#btn-burst-from-gallery{background:none;border:1px solid var(--border);border-radius:8px;
+  color:var(--gold);font-family:sans-serif;font-size:13px;padding:10px}
+#btn-burst-done{background:var(--gold);border:none;border-radius:12px;color:#0a0a0a;
+  font-family:sans-serif;font-size:15px;font-weight:700;padding:15px}
+#btn-burst-done:disabled{opacity:.4}
+#btn-burst-cancel{background:none;border:none;color:var(--muted);font-family:sans-serif;font-size:13px;padding:6px}
+
+/* VIEW: BURST REVIEW */
+#view-burst-review{flex:1;display:flex;flex-direction:column;padding:16px;gap:10px;overflow-y:auto}
+#burst-rev-head{display:flex;justify-content:space-between;align-items:center}
+#burst-rev-title{font-size:17px;color:var(--gold)}
+#burst-rev-progress{font-family:sans-serif;font-size:12px;color:var(--muted)}
+#burst-bete-group{margin:0}
+#burst-bete{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:11px 12px;font-size:15px;font-family:inherit}
+.burst-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;position:relative}
+.burst-card.suspect{border-color:var(--orange)}
+.burst-card.illisible{border-color:var(--red);opacity:.85}
+.burst-card-top{display:flex;gap:10px;margin-bottom:10px}
+.burst-card-thumb{width:54px;height:54px;border-radius:8px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+.burst-card-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.burst-card-row{display:flex;gap:6px}
+.burst-card input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+  border-radius:6px;padding:8px 9px;font-size:13px;font-family:sans-serif}
+.burst-card input.coupe{font-size:14px;color:var(--text)}
+.burst-card input.missing{border-color:var(--orange)}
+.burst-card-x{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;
+  background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-size:12px}
+.burst-card-flag{font-family:sans-serif;font-size:11px;color:var(--orange);margin-top:2px}
+#burst-rev-actions{display:flex;flex-direction:column;gap:8px;margin-top:4px;padding-bottom:8px}
+#btn-burst-add-more{background:none;border:1px dashed var(--gold);border-radius:10px;color:var(--gold);
+  font-family:sans-serif;font-size:13px;padding:11px}
+#btn-burst-confirm{background:var(--gold);border:none;border-radius:12px;color:#0a0a0a;
+  font-family:sans-serif;font-size:15px;font-weight:700;padding:15px}
+#btn-burst-confirm:disabled{opacity:.4}
 
 /* VIEW: ANALYZING */
 #view-analyzing{flex:1;display:flex;flex-direction:column;align-items:center;
@@ -511,6 +569,12 @@ button,label[for],[role=button]{cursor:pointer}
           <div id="btn-camera-label">Scanner</div>
         </button>
         <div id="idle-status" aria-live="polite"></div>
+        <button id="btn-burst" aria-label="Scanner plusieurs étiquettes en rafale">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" style="vertical-align:-2px;margin-right:6px" aria-hidden="true">
+            <rect x="7" y="7" width="13" height="13" rx="2"/>
+            <path d="M4 16V5a1 1 0 011-1h11"/>
+          </svg>Scanner en rafale
+        </button>
         <button id="btn-upload" aria-label="Charger une photo depuis la galerie">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="vertical-align:-2px;margin-right:5px" aria-hidden="true">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
@@ -569,6 +633,43 @@ button,label[for],[role=button]{cursor:pointer}
             <input type="date" id="f-mb"></div>
           <div class="field"><label>Bête (tag ATQ)</label>
             <select id="f-bete"><option value="">— aucune —</option></select></div>
+        </div>
+      </div>
+
+      <!-- Vue 4 : capture rafale (prise de photos en série) -->
+      <div id="view-burst-capture" style="display:none">
+        <div id="burst-cap-head">
+          <div id="burst-cap-count">0 photo</div>
+          <div id="burst-cap-sub">Photographiez chaque étiquette, une après l'autre</div>
+        </div>
+        <div id="burst-thumbs"></div>
+        <button id="btn-burst-next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="vertical-align:-3px;margin-right:7px" aria-hidden="true">
+            <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/>
+            <circle cx="12" cy="12" r="3.5"/>
+          </svg>Photo suivante
+        </button>
+        <button id="btn-burst-from-gallery">＋ Choisir depuis la galerie</button>
+        <button id="btn-burst-done">✓ Analyser les photos</button>
+        <button id="btn-burst-cancel">Annuler</button>
+      </div>
+
+      <!-- Vue 5 : révision du lot analysé -->
+      <div id="view-burst-review" style="display:none">
+        <div id="burst-rev-head">
+          <span id="burst-rev-title">Révision du lot</span>
+          <span id="burst-rev-progress"></span>
+        </div>
+        <div class="card-group" id="burst-bete-group">
+          <div class="card-group-title">Bête pour tout le lot (optionnel)</div>
+          <div class="field">
+            <select id="burst-bete"><option value="">— aucune —</option></select>
+          </div>
+        </div>
+        <div id="burst-rev-list"></div>
+        <div id="burst-rev-actions">
+          <button id="btn-burst-add-more">＋ Ajouter d'autres photos</button>
+          <button id="btn-burst-confirm">✓ Tout confirmer</button>
         </div>
       </div>
 
@@ -827,8 +928,10 @@ button,label[for],[role=button]{cursor:pointer}
 <div id="toast"></div>
 
 <!-- Inputs fichier cachés -->
-<input type="file" id="input-camera" accept="image/*" capture="environment" style="display:none">
-<input type="file" id="input-file"   accept="image/*" style="display:none">
+<input type="file" id="input-camera"      accept="image/*" capture="environment" style="display:none">
+<input type="file" id="input-file"        accept="image/*" style="display:none">
+<input type="file" id="input-burst-cam"   accept="image/*" capture="environment" style="display:none">
+<input type="file" id="input-burst-multi" accept="image/*" multiple style="display:none">
 
 <script>
 // ══════════════════════════════════════════════════════
@@ -864,7 +967,9 @@ const S = {
   sessionItems: [],   // tous les items confirmés cette session
   products:     [],   // cache inventaire Shopify
   chatHistory:  [],
+  burst:        [],   // lot en cours : {id, dataUrl, base64, etat, result}
 };
+let burstSeq = 0;
 
 // ══════════════════════════════════════════════════════
 //  UTILITAIRES
@@ -898,10 +1003,12 @@ function updateCounter() {
 //  VUES DU SCANNER
 // ══════════════════════════════════════════════════════
 function showView(name) {
-  $('view-idle').style.display      = name === 'idle'      ? '' : 'none';
-  $('view-analyzing').style.display = name === 'analyzing' ? '' : 'none';
-  $('view-form').style.display      = name === 'form'      ? '' : 'none';
-  $('form-actions').style.display   = name === 'form'      ? 'flex' : 'none';
+  $('view-idle').style.display          = name === 'idle'          ? '' : 'none';
+  $('view-analyzing').style.display     = name === 'analyzing'     ? '' : 'none';
+  $('view-form').style.display          = name === 'form'          ? '' : 'none';
+  $('view-burst-capture').style.display = name === 'burst-capture' ? '' : 'none';
+  $('view-burst-review').style.display  = name === 'burst-review'  ? '' : 'none';
+  $('form-actions').style.display       = name === 'form'          ? 'flex' : 'none';
 }
 
 // ══════════════════════════════════════════════════════
@@ -1208,6 +1315,230 @@ async function confirmItems() {
 
   S.dupCount = 1;
   showView('idle');
+}
+
+// ══════════════════════════════════════════════════════
+//  SCAN EN RAFALE — plusieurs étiquettes d'un coup
+// ══════════════════════════════════════════════════════
+const BURST_CONCURRENCE = 2;   // analyses simultanées (ménage le rate limit)
+let burstActifs = 0;
+
+function startBurst() {
+  S.burst = [];
+  burstSeq = 0;
+  showView('burst-capture');
+  renderBurstCapture();
+  // Ouvre la caméra immédiatement (geste utilisateur du bouton)
+  $('input-burst-cam').click();
+}
+
+// Ajoute des fichiers au lot et lance l'analyse en arrière-plan
+async function addBurstFiles(files) {
+  for (const file of files) {
+    const item = { id: ++burstSeq, dataUrl: '', base64: '', etat: 'attente', result: null };
+    S.burst.push(item);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      item.base64  = await compresserImage(dataUrl.split(',')[1]);
+      item.dataUrl = 'data:image/jpeg;base64,' + item.base64;
+    } catch (_) { item.etat = 'erreur'; }
+  }
+  renderBurstCapture();
+  pumpBurstQueue();
+}
+
+// Pool d'analyse : lance jusqu'à BURST_CONCURRENCE analyses en parallèle
+function pumpBurstQueue() {
+  while (burstActifs < BURST_CONCURRENCE) {
+    const item = S.burst.find(b => b.etat === 'attente' && b.base64);
+    if (!item) break;
+    burstActifs++;
+    analyserBurstItem(item).finally(() => { burstActifs--; pumpBurstQueue(); });
+  }
+}
+
+async function analyserBurstItem(item) {
+  item.etat = 'analyse';
+  majBurstThumbs();
+  try {
+    const result = await analyzeLabel(item.base64, 'image/jpeg');
+    if (!result || result.etiquette === false) {
+      item.etat = 'illisible';
+    } else {
+      item.result = result;
+      item.etat = 'ok';
+    }
+  } catch (_) {
+    item.etat = 'erreur';
+  }
+  majBurstThumbs();
+  if ($('view-burst-review').style.display !== 'none') renderBurstReview();
+}
+
+function burstThumbState(etat) {
+  if (etat === 'ok')        return '<div class="burst-thumb-state ok">✓</div>';
+  if (etat === 'illisible') return '<div class="burst-thumb-state err">!</div>';
+  if (etat === 'erreur')    return '<div class="burst-thumb-state err">!</div>';
+  if (etat === 'analyse')   return '<div class="burst-thumb-state">…</div>';
+  return '<div class="burst-thumb-state">⏳</div>';
+}
+
+function renderBurstCapture() {
+  const n = S.burst.length;
+  $('burst-cap-count').textContent = n + ' photo' + (n > 1 ? 's' : '');
+  $('burst-thumbs').innerHTML = S.burst.map(b => `
+    <div class="burst-thumb">
+      ${b.dataUrl ? `<img src="${b.dataUrl}" alt="">` : ''}
+      ${burstThumbState(b.etat)}
+      <button class="burst-thumb-x" onclick="retirerBurst(${b.id})" aria-label="Retirer">✕</button>
+    </div>`).join('');
+  $('btn-burst-done').disabled = n === 0;
+  $('btn-burst-done').textContent = n ? `✓ Analyser les ${n} photo${n > 1 ? 's' : ''}` : '✓ Analyser les photos';
+}
+
+// Met à jour seulement les pastilles d'état (sans tout reconstruire)
+function majBurstThumbs() {
+  if ($('view-burst-capture').style.display !== 'none') renderBurstCapture();
+}
+
+function retirerBurst(id) {
+  S.burst = S.burst.filter(b => b.id !== id);
+  if ($('view-burst-review').style.display !== 'none') renderBurstReview();
+  else renderBurstCapture();
+}
+
+// Passe à la révision — attend la fin des analyses en cours
+async function gotoBurstReview() {
+  if (!S.burst.length) return;
+  pumpBurstQueue();
+  // Attendre que toutes les analyses soient terminées
+  const enCours = () => S.burst.some(b => b.etat === 'attente' || b.etat === 'analyse');
+  if (enCours()) {
+    showLoader('Analyse des étiquettes…');
+    while (enCours()) {
+      const fait = S.burst.filter(b => b.etat !== 'attente' && b.etat !== 'analyse').length;
+      $('loader-text').textContent = `${fait}/${S.burst.length} analysées…`;
+      await pause(350);
+    }
+    hideLoader();
+  }
+  remplirSelectBurstBete();
+  showView('burst-review');
+  renderBurstReview();
+}
+
+function remplirSelectBurstBete() {
+  const sel = $('burst-bete');
+  if (!sel) return;
+  const current = sel.value;
+  const frigo  = (S.troupeau || []).filter(b => b.statut === 'frigo');
+  const autres = (S.troupeau || []).filter(b => b.statut !== 'frigo' && b.statut !== 'vendu');
+  sel.innerHTML = '<option value="">— aucune —</option>'
+    + frigo.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · frigo${b.tag_atq ? ' · ' + b.tag_atq : ''}</option>`).join('')
+    + autres.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · ${b.statut}</option>`).join('');
+  if (current) sel.value = current;
+}
+
+function renderBurstReview() {
+  const items = S.burst;
+  const ok = items.filter(b => b.etat === 'ok').length;
+  $('burst-rev-progress').textContent = `${items.length} photo${items.length > 1 ? 's' : ''} · ${ok} lue${ok > 1 ? 's' : ''}`;
+
+  $('burst-rev-list').innerHTML = items.map(b => {
+    const r = b.result || {};
+    const illisible = b.etat === 'illisible' || b.etat === 'erreur';
+    const flag = illisible ? '<div class="burst-card-flag">⚠ Étiquette illisible — corrigez ou retirez</div>' : '';
+    const cls = illisible ? 'burst-card illisible' : 'burst-card';
+    return `<div class="${cls}" data-id="${b.id}">
+      <button class="burst-card-x" onclick="retirerBurst(${b.id})" aria-label="Retirer">✕</button>
+      <div class="burst-card-top">
+        ${b.dataUrl ? `<img class="burst-card-thumb" src="${b.dataUrl}" alt="">` : ''}
+        <div class="burst-card-fields">
+          <input class="coupe bc-coupe ${!r.coupe ? 'missing' : ''}" type="text" placeholder="Coupe"
+                 value="${r.coupe ? r.coupe.replace(/"/g, '&quot;') : ''}">
+          <div class="burst-card-row">
+            <input class="bc-poids" type="text" placeholder="Poids" value="${r.poids || (r.poids_kg ? r.poids_kg + ' kg' : '')}">
+            <input class="bc-total ${!r.total ? 'missing' : ''}" type="number" step="0.01" placeholder="Total $" value="${r.total != null ? r.total : ''}">
+          </div>
+          <input class="bc-mb" type="date" value="${r.meilleur_avant || ''}">
+        </div>
+      </div>
+      ${flag}
+    </div>`;
+  }).join('');
+  $('btn-burst-confirm').disabled = items.length === 0;
+  $('btn-burst-confirm').textContent = `✓ Tout confirmer (${items.length})`;
+}
+
+// Lit les valeurs éditées dans les cartes avant l'envoi
+function lireBurstCards() {
+  return [...document.querySelectorAll('#burst-rev-list .burst-card')].map(card => {
+    const id = parseInt(card.dataset.id);
+    const item = S.burst.find(b => b.id === id);
+    const coupe = card.querySelector('.bc-coupe').value.trim();
+    const poids = card.querySelector('.bc-poids').value.trim();
+    const total = parseFloat(card.querySelector('.bc-total').value) || 0;
+    const mb    = card.querySelector('.bc-mb').value || null;
+    const poidsKg = parseFloat(poids) || 0;
+    return { id, item, coupe, poidsKg, total, mb,
+             prixKg: poidsKg > 0 ? Math.round(total / poidsKg * 100) / 100 : 0 };
+  });
+}
+
+async function confirmBurst() {
+  const cards = lireBurstCards();
+  // Validation : chaque carte doit avoir coupe + total
+  let premierInvalide = null;
+  cards.forEach(c => {
+    const cardEl = document.querySelector(`.burst-card[data-id="${c.id}"]`);
+    const coupeBad = !c.coupe, totalBad = !c.total;
+    cardEl.querySelector('.bc-coupe').classList.toggle('missing', coupeBad);
+    cardEl.querySelector('.bc-total').classList.toggle('missing', totalBad);
+    if ((coupeBad || totalBad) && !premierInvalide) premierInvalide = cardEl;
+  });
+  if (premierInvalide) {
+    premierInvalide.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    toast('Complétez les champs en orange (coupe + total)', 3200);
+    return;
+  }
+
+  const numeroBete = parseInt($('burst-bete').value) || null;
+  $('btn-burst-confirm').disabled = true;
+  showLoader(`Envoi de ${cards.length} sacs…`);
+
+  let ok = 0, fail = 0, lastErr = '';
+  for (let i = 0; i < cards.length; i++) {
+    const c = cards[i];
+    $('loader-text').textContent = `${i + 1}/${cards.length} — ${c.coupe}…`;
+    try {
+      const r = await fetch('/api/inventaire', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          coupe:          c.coupe,
+          poids_kg:       c.poidsKg,
+          prix_kg:        c.prixKg,
+          prix_total:     c.total,
+          meilleur_avant: c.mb,
+          numero_bete:    numeroBete,
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error ?? `HTTP ${r.status}`);
+      S.sessionItems.push({ coupe: c.coupe, total: c.total });
+      ok++;
+    } catch (e) { fail++; lastErr = e.message; }
+    await pause(250);
+  }
+
+  hideLoader();
+  $('btn-burst-confirm').disabled = false;
+  updateCounter();
+  toast(ok ? `✓ ${ok} sac${ok > 1 ? 's' : ''} enregistré${ok > 1 ? 's' : ''}` + (fail ? ` · ${fail} erreur(s)` : '')
+           : `Erreur : ${lastErr.slice(0, 80)}`, 4000);
+  S.burst = [];
+  showView('idle');
+  setIdleStatus(ok ? `✓ Lot de ${ok} enregistré` : '', 'ready');
 }
 
 // ══════════════════════════════════════════════════════
@@ -1868,6 +2199,24 @@ $('btn-upload').addEventListener('click', () => $('input-file').click());
 function onFileSelect(e) { if (e.target.files[0]) handlePhoto(e.target.files[0]); e.target.value = ''; }
 $('input-camera').addEventListener('change', onFileSelect);
 $('input-file').addEventListener('change',   onFileSelect);
+
+// ── Scan en rafale ──
+$('btn-burst').addEventListener('click', startBurst);
+$('btn-burst-next').addEventListener('click', () => $('input-burst-cam').click());
+$('btn-burst-from-gallery').addEventListener('click', () => $('input-burst-multi').click());
+$('btn-burst-done').addEventListener('click', gotoBurstReview);
+$('btn-burst-cancel').addEventListener('click', () => { S.burst = []; showView('idle'); });
+$('btn-burst-confirm').addEventListener('click', confirmBurst);
+$('btn-burst-add-more').addEventListener('click', () => { showView('burst-capture'); renderBurstCapture(); $('input-burst-cam').click(); });
+
+$('input-burst-cam').addEventListener('change', e => {
+  if (e.target.files.length) addBurstFiles([...e.target.files]);
+  e.target.value = '';
+});
+$('input-burst-multi').addEventListener('change', e => {
+  if (e.target.files.length) addBurstFiles([...e.target.files]);
+  e.target.value = '';
+});
 
 // Modal "même coupe" — accessible via lien dans le form
 function ouvrirModalMemeCoupe() {
