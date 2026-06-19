@@ -131,8 +131,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
   background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);font-size:12px}
 .burst-card-flag{font-family:sans-serif;font-size:11px;color:var(--orange);margin-top:2px}
 #burst-rev-actions{display:flex;flex-direction:column;gap:8px;margin-top:4px;padding-bottom:8px}
-#btn-burst-add-more{background:none;border:1px dashed var(--gold);border-radius:10px;color:var(--gold);
+#btn-burst-back{background:none;border:1px dashed var(--gold);border-radius:10px;color:var(--gold);
   font-family:sans-serif;font-size:13px;padding:11px}
+.burst-empty{grid-column:1/-1;text-align:center;color:var(--muted);font-family:sans-serif;
+  font-size:13px;padding:28px 16px;line-height:1.5}
 #btn-burst-confirm{background:var(--gold);border:none;border-radius:12px;color:#0a0a0a;
   font-family:sans-serif;font-size:15px;font-weight:700;padding:15px}
 #btn-burst-confirm:disabled{opacity:.4}
@@ -668,7 +670,7 @@ button,label[for],[role=button]{cursor:pointer}
         </div>
         <div id="burst-rev-list"></div>
         <div id="burst-rev-actions">
-          <button id="btn-burst-add-more">＋ Ajouter d'autres photos</button>
+          <button id="btn-burst-back">← Retour aux photos (ajouter / reprendre)</button>
           <button id="btn-burst-confirm">✓ Tout confirmer</button>
         </div>
       </div>
@@ -1386,12 +1388,17 @@ function burstThumbState(etat) {
 function renderBurstCapture() {
   const n = S.burst.length;
   $('burst-cap-count').textContent = n + ' photo' + (n > 1 ? 's' : '');
-  $('burst-thumbs').innerHTML = S.burst.map(b => `
-    <div class="burst-thumb">
-      ${b.dataUrl ? `<img src="${b.dataUrl}" alt="">` : ''}
-      ${burstThumbState(b.etat)}
-      <button class="burst-thumb-x" onclick="retirerBurst(${b.id})" aria-label="Retirer">✕</button>
-    </div>`).join('');
+  $('burst-cap-sub').textContent = n
+    ? 'Ajoute, supprime, ou analyse quand t\'es prêt'
+    : 'Photographiez chaque étiquette, une après l\'autre';
+  $('burst-thumbs').innerHTML = n
+    ? S.burst.map(b => `
+      <div class="burst-thumb">
+        ${b.dataUrl ? `<img src="${b.dataUrl}" alt="">` : ''}
+        ${burstThumbState(b.etat)}
+        <button class="burst-thumb-x" onclick="retirerBurst(${b.id})" aria-label="Retirer">✕</button>
+      </div>`).join('')
+    : '<div class="burst-empty">Aucune photo — appuie sur « Photo suivante » pour commencer</div>';
   $('btn-burst-done').disabled = n === 0;
   $('btn-burst-done').textContent = n ? `✓ Analyser les ${n} photo${n > 1 ? 's' : ''}` : '✓ Analyser les photos';
 }
@@ -1403,6 +1410,12 @@ function majBurstThumbs() {
 
 function retirerBurst(id) {
   S.burst = S.burst.filter(b => b.id !== id);
+  // Plus aucune photo : retour automatique à l'écran des photos (jamais coincé)
+  if (!S.burst.length) {
+    showView('burst-capture');
+    renderBurstCapture();
+    return;
+  }
   if ($('view-burst-review').style.display !== 'none') renderBurstReview();
   else renderBurstCapture();
 }
@@ -1443,6 +1456,13 @@ function renderBurstReview() {
   const items = S.burst;
   const ok = items.filter(b => b.etat === 'ok').length;
   $('burst-rev-progress').textContent = `${items.length} photo${items.length > 1 ? 's' : ''} · ${ok} lue${ok > 1 ? 's' : ''}`;
+
+  if (!items.length) {
+    $('burst-rev-list').innerHTML = '<div class="burst-empty">Aucune photo dans le lot — reviens aux photos pour en prendre</div>';
+    $('btn-burst-confirm').disabled = true;
+    $('btn-burst-confirm').textContent = '✓ Tout confirmer';
+    return;
+  }
 
   $('burst-rev-list').innerHTML = items.map(b => {
     const r = b.result || {};
@@ -2205,9 +2225,13 @@ $('btn-burst').addEventListener('click', startBurst);
 $('btn-burst-next').addEventListener('click', () => $('input-burst-cam').click());
 $('btn-burst-from-gallery').addEventListener('click', () => $('input-burst-multi').click());
 $('btn-burst-done').addEventListener('click', gotoBurstReview);
-$('btn-burst-cancel').addEventListener('click', () => { S.burst = []; showView('idle'); });
+$('btn-burst-cancel').addEventListener('click', () => {
+  if (S.burst.length && !confirm('Abandonner les photos en cours et revenir à l\'accueil ?')) return;
+  S.burst = []; showView('idle');
+});
 $('btn-burst-confirm').addEventListener('click', confirmBurst);
-$('btn-burst-add-more').addEventListener('click', () => { showView('burst-capture'); renderBurstCapture(); $('input-burst-cam').click(); });
+// Retour à l'écran des photos (gérer / supprimer / reprendre) — sans ouvrir la caméra
+$('btn-burst-back').addEventListener('click', () => { showView('burst-capture'); renderBurstCapture(); });
 
 $('input-burst-cam').addEventListener('change', e => {
   if (e.target.files.length) addBurstFiles([...e.target.files]);
