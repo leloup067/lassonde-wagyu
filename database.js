@@ -16,6 +16,10 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 console.log(`📦 DB : ${DB_PATH}${process.env.RAILWAY_VOLUME_MOUNT_PATH ? ' (disque persistant ✅)' : ' (local)'}`);
 
+// Dossier des photos de scan (sur le disque persistant)
+const PHOTO_DIR = path.join(DB_DIR, 'photos');
+try { fs.mkdirSync(PHOTO_DIR, { recursive: true }); } catch (_) {}
+
 // ─── SCHÉMA ──────────────────────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS inventaire (
@@ -87,6 +91,9 @@ for (const m of MIGRATIONS_BETES) {
 }
 // Statut legacy 'en cours' → 'pâturage' (nouveau vocabulaire troupeau)
 db.exec(`UPDATE betes SET statut = 'pâturage' WHERE statut = 'en cours' OR statut IS NULL`);
+
+// Migration : colonne photo sur inventaire (nom de fichier de la photo de scan)
+try { db.exec(`ALTER TABLE inventaire ADD COLUMN photo TEXT`); } catch (_) { /* existe déjà */ }
 
 // ─── SEED : CATALOGUE COMPLET LASSONDE — 44 PRODUITS ────────────────────────
 const prixLassonde = [
@@ -213,6 +220,27 @@ function supprimerSac(id) {
   return db.prepare('DELETE FROM inventaire WHERE id = ?').run(id);
 }
 
+// Enregistre la photo d'un sac (base64) sur le disque + référence en DB
+function setSacPhoto(id, base64) {
+  if (!base64) return null;
+  const file = `${id}.jpg`;
+  fs.writeFileSync(path.join(PHOTO_DIR, file), Buffer.from(base64, 'base64'));
+  db.prepare('UPDATE inventaire SET photo = ? WHERE id = ?').run(file, id);
+  return file;
+}
+
+function getPhotoPath(id) {
+  const row = db.prepare('SELECT photo FROM inventaire WHERE id = ?').get(id);
+  if (!row || !row.photo) return null;
+  const p = path.join(PHOTO_DIR, row.photo);
+  return fs.existsSync(p) ? p : null;
+}
+
+// Rattache tous les sacs SANS bête à un numéro de bête (ex: le bœuf test #0)
+function rattacherOrphelins(numero_bete) {
+  return db.prepare('UPDATE inventaire SET numero_bete = ? WHERE numero_bete IS NULL').run(numero_bete);
+}
+
 function getInventaire({ statut, coupe, limit = 10000 } = {}) {
   let sql = 'SELECT * FROM inventaire WHERE 1=1';
   const params = [];
@@ -274,7 +302,7 @@ function upsertBete(data) {
       notes             = COALESCE(excluded.notes, notes),
       statut            = excluded.statut
   `).run({
-    numero_bete:       data.numero_bete       || 1,
+    numero_bete:       data.numero_bete != null ? data.numero_bete : 1,  // permet le bœuf #0
     tag_atq:           data.tag_atq           || null,
     nom:               data.nom               || null,
     type:              data.type              || 'bœuf',
@@ -288,7 +316,7 @@ function upsertBete(data) {
     notes:             data.notes             || null,
     statut:            data.statut            || 'pâturage',
   });
-  return db.prepare('SELECT * FROM betes WHERE numero_bete = ?').get(data.numero_bete || 1);
+  return db.prepare('SELECT * FROM betes WHERE numero_bete = ?').get(data.numero_bete != null ? data.numero_bete : 1);
 }
 
 // Import en masse (liste papier scannée ou CSV) — transaction unique
@@ -481,6 +509,9 @@ module.exports = {
   updateStatut,
   getSac,
   supprimerSac,
+  setSacPhoto,
+  getPhotoPath,
+  rattacherOrphelins,
   getInventaire,
   getResume,
   upsertBete,

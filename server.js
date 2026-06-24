@@ -78,6 +78,12 @@ app.post('/api/inventaire', async (req, res) => {
     // 1. Insérer en base locale
     const id = db.insertSac(data);
 
+    // 1b. Sauvegarder la photo du scan (base64) si fournie
+    if (data.photo) {
+      try { db.setSacPhoto(id, data.photo); }
+      catch (pe) { console.warn('Photo save warning:', pe.message); }
+    }
+
     // 2. Sync Shopify (best-effort, non bloquant pour la réponse)
     let shopifyId = null;
     if (process.env.SHOPIFY_ACCESS_TOKEN) {
@@ -109,6 +115,16 @@ app.delete('/api/inventaire/:id', (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Revoir la photo d'un sac scanné
+app.get('/api/inventaire/:id/photo', (req, res) => {
+  try {
+    const p = db.getPhotoPath(parseInt(req.params.id));
+    if (!p) return res.status(404).json({ ok: false, error: 'pas de photo' });
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.sendFile(p);
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ─── API BÊTES ────────────────────────────────────────────────────────────────
 app.get('/api/betes', (req, res) => {
   try { res.json({ ok: true, betes: db.getBetes() }); }
@@ -132,9 +148,17 @@ app.get('/api/troupeau', (req, res) => {
 app.post('/api/troupeau', (req, res) => {
   try {
     const d = req.body;
-    if (!d.numero_bete) return res.status(400).json({ ok: false, error: 'numero_bete requis' });
+    if (d.numero_bete == null || d.numero_bete === '') return res.status(400).json({ ok: false, error: 'numero_bete requis' });
     const bete = db.upsertBete(d);
     res.json({ ok: true, bete });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Rattacher tous les sacs sans bête à une bête (ex: le bœuf test #0)
+app.post('/api/troupeau/:numero/rattacher-orphelins', (req, res) => {
+  try {
+    const r = db.rattacherOrphelins(parseInt(req.params.numero));
+    res.json({ ok: true, rattaches: r.changes });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
