@@ -322,11 +322,29 @@ app.get('/api/prix-marche', (req, res) => {
 });
 
 // ─── API VENTES ───────────────────────────────────────────────────────────────
+// Trouver dans le stock le sac qui correspond à une étiquette scannée (avant de vendre)
+app.post('/api/vente/chercher', (req, res) => {
+  try {
+    const { coupe, poids_kg } = req.body;
+    if (!coupe) return res.status(400).json({ ok: false, error: 'coupe requise' });
+    const sac = db.chercherSacDisponible(coupe, parseFloat(poids_kg) || null);
+    res.json({ ok: true, sac });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Enregistrer une vente (marque le sac vendu + sort du stock)
 app.post('/api/ventes', (req, res) => {
   try {
+    if (!req.body.inventaire_id) return res.status(400).json({ ok: false, error: 'inventaire_id requis' });
     const id = db.enregistrerVente(req.body);
     res.json({ ok: true, id });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Historique des ventes
+app.get('/api/ventes', (req, res) => {
+  try { res.json({ ok: true, ventes: db.getVentes() }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 // ─── API DASHBOARD ────────────────────────────────────────────────────────────

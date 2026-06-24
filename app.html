@@ -528,6 +528,33 @@ button,label[for],[role=button]{cursor:pointer}
 .verif-intro-text{font-family:sans-serif;font-size:13px;color:var(--muted);line-height:1.55;max-width:300px;margin:0 auto}
 #btn-scan-liste{display:block;margin:8px auto;background:var(--gold);color:#0a0a0a;border:none;
   border-radius:12px;padding:15px 28px;font-family:sans-serif;font-size:15px;font-weight:700}
+
+/* ── VENTE ── */
+#btn-vente-scan{display:block;margin:8px auto 24px;background:var(--gold);color:#0a0a0a;border:none;
+  border-radius:12px;padding:15px 28px;font-family:sans-serif;font-size:15px;font-weight:700}
+#vente-analyze-status{display:flex;flex-direction:column;align-items:center;gap:18px;
+  padding:60px 20px;font-family:sans-serif;font-size:13px;color:var(--muted)}
+#vente-match{padding:8px 4px}
+#vente-match-card{background:var(--surface);border:1px solid var(--gold);border-radius:14px;padding:18px;margin-bottom:14px}
+.vm-coupe{font-size:20px;color:var(--gold);margin-bottom:4px}
+.vm-row{display:flex;justify-content:space-between;font-family:sans-serif;font-size:13px;
+  color:var(--muted);padding:7px 0;border-bottom:1px solid var(--border)}
+.vm-row:last-child{border-bottom:none}
+.vm-row strong{color:var(--text);font-weight:600}
+.vm-warn{background:rgba(230,170,80,.12);border:1px solid rgba(230,170,80,.4);border-radius:12px;
+  padding:16px;font-family:sans-serif;font-size:13px;color:#e8b46a;line-height:1.5;text-align:center}
+#vente-match-actions{display:flex;flex-direction:column;gap:8px}
+#btn-vente-confirm{background:var(--gold);border:none;border-radius:12px;color:#0a0a0a;
+  font-family:sans-serif;font-size:15px;font-weight:700;padding:15px}
+#btn-vente-confirm:disabled{opacity:.4}
+#btn-vente-cancel{background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:10px;padding:12px;font-family:sans-serif;font-size:13px}
+#vente-recent{margin-top:10px}
+.vente-row{display:flex;justify-content:space-between;align-items:center;background:var(--surface);
+  border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:6px}
+.vente-row-info{font-size:14px;color:var(--text)}
+.vente-row-sub{font-family:sans-serif;font-size:11px;color:var(--muted);margin-top:2px}
+.vente-row-prix{font-size:14px;color:var(--green)}
 #verif-analyze-status{display:flex;flex-direction:column;align-items:center;gap:18px;
   padding:60px 20px;font-family:sans-serif;font-size:13px;color:var(--muted)}
 #verif-progress-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
@@ -777,6 +804,38 @@ button,label[for],[role=button]{cursor:pointer}
       </div>
     </div>
 
+    <!-- ══ VENTE ══ -->
+    <div id="panel-vente" class="panel">
+      <!-- Étape 1 : scanner pour vendre -->
+      <div id="vente-idle">
+        <div class="verif-intro">
+          <div class="verif-intro-icon">🏷️</div>
+          <div class="verif-intro-title">Vendre un morceau</div>
+          <div class="verif-intro-text">Scanne l'étiquette du paquet vendu — il sortira du stock, avec la date et la bête enregistrées.</div>
+        </div>
+        <button id="btn-vente-scan">📷 Scanner pour vendre</button>
+        <div id="vente-recent">
+          <div class="troupeau-section-title">Dernières ventes</div>
+          <div id="vente-recent-list"></div>
+        </div>
+      </div>
+      <!-- Étape 2 : analyse -->
+      <div id="vente-analyzing" style="display:none">
+        <div id="vente-analyze-status">
+          <div class="wave-dots"><div class="wave-dot"></div><div class="wave-dot"></div><div class="wave-dot"></div></div>
+          <span>Lecture de l'étiquette…</span>
+        </div>
+      </div>
+      <!-- Étape 3 : confirmation du sac trouvé -->
+      <div id="vente-match" style="display:none">
+        <div id="vente-match-card"></div>
+        <div id="vente-match-actions">
+          <button id="btn-vente-confirm">✓ Confirmer la vente</button>
+          <button id="btn-vente-cancel">Annuler</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ AGENT ══ -->
     <div id="panel-agent" class="panel">
       <div id="chat-messages" role="log" aria-live="polite" aria-label="Conversation avec l'agent">
@@ -835,6 +894,14 @@ button,label[for],[role=button]{cursor:pointer}
           <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
         </svg>
       </span>Vérif
+    </button>
+    <button class="tab" data-tab="vente" role="tab" aria-selected="false" aria-controls="panel-vente">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+          <line x1="7" y1="7" x2="7.01" y2="7"/>
+        </svg>
+      </span>Vente
     </button>
     <button class="tab" data-tab="agent" role="tab" aria-selected="false" aria-controls="panel-agent">
       <span class="tab-icon">
@@ -2244,6 +2311,100 @@ function ouvrirCamera(handler) {
 }
 
 // ══════════════════════════════════════════════════════
+//  VENTE — scanner un morceau pour le vendre
+// ══════════════════════════════════════════════════════
+function showVenteView(name) {
+  $('vente-idle').style.display      = name === 'idle'      ? '' : 'none';
+  $('vente-analyzing').style.display = name === 'analyzing' ? '' : 'none';
+  $('vente-match').style.display     = name === 'match'     ? '' : 'none';
+}
+
+async function loadVentesRecentes() {
+  try {
+    const r = await fetch('/api/ventes');
+    const d = await r.json();
+    const ventes = d.ventes || [];
+    const list = $('vente-recent-list');
+    if (!ventes.length) { list.innerHTML = '<div class="empty-state" style="padding:18px"><div>—</div>Aucune vente pour l\'instant</div>'; return; }
+    list.innerHTML = ventes.map(v => `
+      <div class="vente-row">
+        <div>
+          <div class="vente-row-info">${v.coupe || '(?)'}${v.poids_kg ? ' · ' + v.poids_kg.toFixed(3) + ' kg' : ''}</div>
+          <div class="vente-row-sub">${(v.date_vente || '').slice(0,16)}${v.numero_bete ? ' · bête #' + v.numero_bete : ''}</div>
+        </div>
+        <div class="vente-row-prix">${v.prix_vendu != null ? v.prix_vendu.toFixed(2) + ' $' : ''}</div>
+      </div>`).join('');
+  } catch (_) {}
+}
+
+async function scannerVente(file) {
+  showVenteView('analyzing');
+  try {
+    const dataUrl = await fileToDataUrl(file);
+    const base64  = await compresserImage(dataUrl.split(',')[1]);
+    const result  = await analyzeLabel(base64, 'image/jpeg');
+    if (!result || result.etiquette === false) {
+      showVenteView('idle');
+      toast('Étiquette illisible — reprends la photo', 3200);
+      return;
+    }
+    // Cherche le sac correspondant dans le stock
+    const r = await fetch('/api/vente/chercher', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coupe: result.coupe, poids_kg: result.poids_kg }),
+    });
+    const d = await r.json();
+    renderVenteMatch(d.sac, result);
+  } catch (e) {
+    showVenteView('idle');
+    toast('Erreur : ' + e.message.slice(0, 60), 3200);
+  }
+}
+
+function renderVenteMatch(sac, scan) {
+  if (!sac) {
+    S.venteMatch = null;
+    $('vente-match-card').innerHTML = `<div class="vm-warn">⚠ « ${scan.coupe || '?'} » n'est pas dans le stock disponible.<br>Déjà vendu, ou jamais scanné ?</div>`;
+    $('btn-vente-confirm').style.display = 'none';
+    $('btn-vente-cancel').textContent = 'Retour';
+    showVenteView('match');
+    return;
+  }
+  S.venteMatch = sac;
+  const bete = (S.troupeau || []).find(b => b.numero_bete === sac.numero_bete);
+  $('vente-match-card').innerHTML = `
+    <div class="vm-coupe">${sac.coupe}</div>
+    <div class="vm-row"><span>Poids</span><strong>${(sac.poids_kg||0).toFixed(3)} kg</strong></div>
+    <div class="vm-row"><span>Prix</span><strong>${(sac.prix_total||0).toFixed(2)} $</strong> <span>(${(sac.prix_kg||0).toFixed(2)} $/kg)</span></div>
+    <div class="vm-row"><span>Scanné le</span><strong>${(sac.date_scan||'').slice(0,10)}</strong></div>
+    <div class="vm-row"><span>Bête</span><strong>${sac.numero_bete ? '#' + sac.numero_bete + (bete && bete.tag_atq ? ' · ' + bete.tag_atq : '') : '— non assignée —'}</strong></div>`;
+  $('btn-vente-confirm').style.display = '';
+  $('btn-vente-confirm').textContent = '✓ Confirmer la vente';
+  $('btn-vente-cancel').textContent = 'Annuler';
+  showVenteView('match');
+}
+
+async function confirmerVente() {
+  const sac = S.venteMatch;
+  if (!sac) return;
+  $('btn-vente-confirm').disabled = true;
+  showLoader('Enregistrement de la vente…');
+  try {
+    const r = await fetch('/api/ventes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inventaire_id: sac.id, prix_vendu: sac.prix_total }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    toast(`✓ Vendu : ${sac.coupe}${sac.numero_bete ? ' (bête #' + sac.numero_bete + ')' : ''}`, 3500);
+    S.venteMatch = null;
+    showVenteView('idle');
+    loadVentesRecentes();
+  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
+  finally { hideLoader(); $('btn-vente-confirm').disabled = false; }
+}
+
+// ══════════════════════════════════════════════════════
 //  NAVIGATION TABS
 // ══════════════════════════════════════════════════════
 function switchTab(tab) {
@@ -2258,6 +2419,7 @@ function switchTab(tab) {
   if (tab === 'stock')    loadAndRenderStock();
   if (tab === 'troupeau') loadTroupeau();
   if (tab === 'verif')    renderVerif();
+  if (tab === 'vente')  { showVenteView('idle'); loadVentesRecentes(); }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2340,6 +2502,11 @@ $('btn-import-ok').addEventListener('click', confirmerImport);
 $('btn-scan-liste').addEventListener('click', () => ouvrirCamera(scannerListe));
 $('btn-verif-scan').addEventListener('click', () => ouvrirCamera(scannerMorceauVerif));
 $('btn-verif-reset').addEventListener('click', resetVerif);
+
+// Vente
+$('btn-vente-scan').addEventListener('click', () => ouvrirCamera(scannerVente));
+$('btn-vente-confirm').addEventListener('click', confirmerVente);
+$('btn-vente-cancel').addEventListener('click', () => { S.venteMatch = null; showVenteView('idle'); });
 
 // Bouton retake (dans le form, au-dessus des champs)
 $('btn-retake').addEventListener('click', recommencerPhoto);

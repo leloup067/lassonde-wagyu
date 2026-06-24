@@ -398,11 +398,36 @@ function getBetes() {
 function enregistrerVente(data) {
   const vente = db.prepare(`
     INSERT INTO ventes (inventaire_id, shopify_order_id, prix_vendu)
-    VALUES (@inventaire_id, @shopify_order_id, @prix_vendu)
-  `).run(data);
+    VALUES (?, ?, ?)
+  `).run(data.inventaire_id, data.shopify_order_id || null, data.prix_vendu || null);
   // Marquer le sac comme vendu
   updateStatut(data.inventaire_id, 'vendu');
   return vente.lastInsertRowid;
+}
+
+// Trouve le sac DISPONIBLE qui correspond le mieux à une étiquette scannée
+// (même coupe, poids le plus proche). null si rien en stock.
+function chercherSacDisponible(coupe, poidsKg) {
+  const c = '%' + (coupe || '').toLowerCase() + '%';
+  const candidats = db.prepare(
+    `SELECT * FROM inventaire WHERE statut = 'disponible' AND LOWER(coupe) LIKE ? ORDER BY date_scan ASC`
+  ).all(c);
+  if (!candidats.length) return null;
+  if (!poidsKg) return candidats[0];               // pas de poids → le plus vieux (FIFO)
+  return candidats.reduce((best, s) =>
+    Math.abs((s.poids_kg || 0) - poidsKg) < Math.abs((best.poids_kg || 0) - poidsKg) ? s : best);
+}
+
+// Historique des ventes (avec coupe + bête depuis l'inventaire)
+function getVentes(limit = 50) {
+  return db.prepare(`
+    SELECT v.id, v.prix_vendu, v.date_vente,
+           i.coupe, i.poids_kg, i.numero_bete, i.id AS inventaire_id
+    FROM ventes v
+    LEFT JOIN inventaire i ON i.id = v.inventaire_id
+    ORDER BY v.date_vente DESC
+    LIMIT ?
+  `).all(limit);
 }
 
 // ─── PRIX MARCHÉ ──────────────────────────────────────────────────────────────
@@ -465,6 +490,8 @@ module.exports = {
   setStatutBete,
   getRapportBete,
   enregistrerVente,
+  chercherSacDisponible,
+  getVentes,
   getPrixMarche,
   comparerPrix,
   getDashboard,
