@@ -230,6 +230,11 @@ function supprimerSac(id) {
   return db.prepare('DELETE FROM inventaire WHERE id = ?').run(id);
 }
 
+// Reclasser un sac (corriger la coupe d'une erreur de scan)
+function updateCoupe(id, coupe) {
+  return db.prepare('UPDATE inventaire SET coupe = ? WHERE id = ?').run(coupe, id);
+}
+
 // Enregistre la photo d'un sac (base64) sur le disque + référence en DB
 function setSacPhoto(id, base64) {
   if (!base64) return null;
@@ -543,6 +548,7 @@ module.exports = {
   updateStatut,
   getSac,
   supprimerSac,
+  updateCoupe,
   setSacPhoto,
   getPhotoPath,
   rattacherOrphelins,

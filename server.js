@@ -115,6 +115,17 @@ app.delete('/api/inventaire/:id', (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Reclasser un sac (corriger la coupe — erreur de scan)
+app.post('/api/inventaire/:id/reclasser', (req, res) => {
+  try {
+    const { coupe } = req.body;
+    if (!coupe) return res.status(400).json({ ok: false, error: 'coupe requise' });
+    const r = db.updateCoupe(parseInt(req.params.id), coupe);
+    if (!r.changes) return res.status(404).json({ ok: false, error: 'sac introuvable' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // Revoir la photo d'un sac scanné
 app.get('/api/inventaire/:id/photo', (req, res) => {
   try {
