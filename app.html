@@ -283,6 +283,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 #panel-stock{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;padding-bottom:80px}
 #stock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 #stock-title{font-size:16px}
+#stock-header-btns{display:flex;gap:8px}
+#btn-prix-marche{background:rgba(200,169,110,.1);border:1px solid var(--border);border-radius:8px;
+  color:var(--gold);padding:8px 12px;font-family:sans-serif;font-size:12px;min-height:36px}
+#btn-prix-marche:active{border-color:var(--gold)}
+#btn-prix-marche:disabled{opacity:.5}
+.cut-marche{font-family:sans-serif;font-size:11.5px;color:#8cb6ff;padding:4px 0 8px}
+.cut-marche strong{color:#aecbff}
+.cut-marche .ecart-haut{color:#7fd494}
+.cut-marche .ecart-bas{color:#e89a6a}
+#prix-marche-maj{font-family:sans-serif;font-size:10.5px;color:var(--muted);text-align:center;margin:-8px 0 12px}
 #btn-refresh{background:none;border:1px solid var(--border);border-radius:8px;
   color:var(--gold);padding:8px 14px;font-family:sans-serif;font-size:12px;cursor:pointer;
   display:flex;align-items:center;gap:6px;min-height:36px;transition:border-color .2s}
@@ -741,12 +751,15 @@ button,label[for],[role=button]{cursor:pointer}
     <div id="panel-stock" class="panel">
       <div id="stock-header">
         <span id="stock-title">Inventaire en direct</span>
-        <button id="btn-refresh" aria-label="Actualiser l'inventaire">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="23 4 23 10 17 10"/>
-            <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
-          </svg>Actualiser
-        </button>
+        <div id="stock-header-btns">
+          <button id="btn-prix-marche" aria-label="Rafraîchir les prix du marché">💡 Marché</button>
+          <button id="btn-refresh" aria-label="Actualiser l'inventaire">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+            </svg>Actualiser
+          </button>
+        </div>
       </div>
       <div id="stock-body">
         <!-- Skeleton loading -->
@@ -1673,6 +1686,8 @@ async function loadAndRenderStock() {
   const body = $('stock-body');
   body.innerHTML = '<div class="empty-state"><div>⏳</div>Chargement…</div>';
   try {
+    // Charge les prix marché en cache (pour affichage) en parallèle
+    await loadPrixSuggeres();
     // Essayer d'abord la DB locale
     const r = await fetch('/api/inventaire?statut=disponible').catch(() => null);
     if (r && r.ok) {
@@ -1709,6 +1724,34 @@ function ouvrirPhoto(id) {
   $('photo-viewer').classList.add('show');
 }
 
+// ── Prix du marché (suggérés) ──
+function loadPrixSuggeres() {
+  return fetch('/api/prix-marche/suggeres').then(r => r.json()).then(d => {
+    if (d.ok) {
+      S.prixSuggeres = {};
+      (d.prix || []).forEach(p => { S.prixSuggeres[p.coupe_key] = p.prix_kg; });
+      S.prixMaj = d.date_maj || null;
+    }
+  }).catch(() => {});
+}
+
+async function rafraichirPrixMarche() {
+  const btn = $('btn-prix-marche');
+  btn.disabled = true;
+  showLoader('Recherche des prix du marché…');
+  try {
+    const r = await fetch('/api/prix-marche/rafraichir', { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    S.prixSuggeres = {};
+    (d.prix || []).forEach(p => { S.prixSuggeres[p.coupe_key] = p.prix_kg; });
+    S.prixMaj = d.date_maj || null;
+    toast(`✓ Prix du marché mis à jour (${(d.prix || []).length} coupes)`, 3500);
+    loadAndRenderStock();
+  } catch (e) { toast('Marché indisponible : ' + e.message.slice(0, 50), 3500); }
+  finally { hideLoader(); btn.disabled = false; }
+}
+
 function renderLocalStock(items) {
   const body = $('stock-body');
   if (!items.length) {
@@ -1730,7 +1773,8 @@ function renderLocalStock(items) {
   const summary  = `<div style="background:var(--surface);border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
     <div style="font-family:sans-serif;font-size:12px;color:var(--muted)">${items.length} sac${items.length>1?'s':''} disponibles</div>
     <div style="font-size:16px;color:var(--gold)">${totalVal.toFixed(2)} $</div>
-  </div>`;
+  </div>`
+  + (S.prixMaj ? `<div id="prix-marche-maj">💡 Prix marché mis à jour : ${(S.prixMaj || '').slice(0,16)}</div>` : '');
 
   // Trier les groupes par nom affiché
   const sections = Object.keys(grouped).sort((a, b) => nomCoupeAffiche(grouped[a]).localeCompare(nomCoupeAffiche(grouped[b])));
@@ -1740,6 +1784,16 @@ function renderLocalStock(items) {
     const poids = g.reduce((s, i) => s + (i.poids_kg || 0), 0);
     const val   = g.reduce((s, i) => s + (i.prix_total || 0), 0);
     const cId   = (coupe || '').replace(/'/g, '’');
+    // Prix marché suggéré pour cette coupe + comparaison avec le prix moyen actuel
+    const suggere = (S.prixSuggeres || {})[key];
+    const monPrixKg = g.length ? g.reduce((s, i) => s + (i.prix_kg || 0), 0) / g.length : 0;
+    let marcheLigne = '';
+    if (suggere) {
+      const ecart = monPrixKg ? Math.round((monPrixKg - suggere) / suggere * 100) : null;
+      const ecartTxt = ecart == null ? '' :
+        ` · ton prix ${monPrixKg.toFixed(0)} $/kg <span class="${ecart >= 0 ? 'ecart-haut' : 'ecart-bas'}">(${ecart >= 0 ? '+' : ''}${ecart}%)</span>`;
+      marcheLigne = `<div class="cut-marche">💡 Marché suggéré : <strong>~${suggere.toFixed(0)} $/kg</strong>${ecartTxt}</div>`;
+    }
     return `
     <div class="stock-cut">
       <button class="stock-cut-head" onclick="toggleCut(this)">
@@ -1748,6 +1802,7 @@ function renderLocalStock(items) {
         <span class="stock-cut-meta">${g.length} · ${poids.toFixed(1)} kg · ${val.toFixed(0)} $</span>
       </button>
       <div class="stock-cut-items" style="display:none">
+        ${marcheLigne}
         ${g.map((item, i) => `
           <div class="stock-item">
             <div>
@@ -2520,6 +2575,7 @@ $('btn-restart').addEventListener('click', recommencerPhoto);
 $('btn-correct').addEventListener('click', corrigerManuellement);
 $('btn-confirm').addEventListener('click', confirmItems);
 $('btn-refresh').addEventListener('click', loadAndRenderStock);
+$('btn-prix-marche').addEventListener('click', rafraichirPrixMarche);
 
 // Troupeau
 $('btn-add-bete').addEventListener('click', ouvrirModalBete);

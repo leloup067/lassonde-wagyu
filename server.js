@@ -345,6 +345,68 @@ app.get('/api/prix-marche', (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Clé normalisée d'une coupe (identique au front pour faire correspondre les prix)
+function coupeKey(coupe) {
+  return (coupe || 'autre').toLowerCase()
+    .replace(/œ/g, 'oe').replace(/æ/g, 'ae')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\bde\s+boeuf.*|\bdu\s+boeuf.*|wagyu.*|halal.*/g, '')
+    .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim() || 'autre';
+}
+
+// Prix suggérés du marché — déjà connus (cache)
+app.get('/api/prix-marche/suggeres', (req, res) => {
+  try { res.json({ ok: true, ...db.getPrixSuggeres() }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Rafraîchir les prix suggérés via recherche web (à la demande — peut prendre ~15-30s)
+app.post('/api/prix-marche/rafraichir', async (req, res) => {
+  res.setTimeout(120000);
+  try {
+    // Coupes distinctes en stock (regroupées par clé normalisée)
+    const rows = db.db.prepare("SELECT DISTINCT coupe FROM inventaire WHERE statut = 'disponible'").all();
+    const byKey = {};
+    for (const r of rows) { const k = coupeKey(r.coupe); if (!byKey[k]) byKey[k] = r.coupe; }
+    const noms = Object.values(byKey);
+    if (!noms.length) return res.json({ ok: true, prix: [], date_maj: null });
+
+    const prompt = `Recherche les prix de détail actuels (dollars canadiens par kg) du bœuf Wagyu / bœuf premium au Québec / Canada en ${new Date().getFullYear()}.
+
+Pour CHACUNE de ces coupes, donne une estimation de prix de détail CAD/kg (Wagyu/premium) :
+${noms.join(', ')}
+
+RÈGLES IMPORTANTES :
+- Donne TOUJOURS un nombre pour chaque coupe (jamais null) — base-toi sur les prix Wagyu/premium courants et le positionnement habituel de la coupe (filet/tomahawk = haut de gamme, haché/os = bas de gamme).
+- Un objet par coupe, en gardant le nom EXACT de la liste.
+
+Réponds UNIQUEMENT avec le tableau JSON, sans aucun texte autour :
+[{"coupe":"<nom exact>","prix_kg":<nombre CAD/kg>}]`;
+
+    const response = await anthropic.messages.create({
+      model:      'claude-sonnet-4-5',
+      max_tokens: 1600,
+      tools:      [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages:   [{ role: 'user', content: prompt }],
+    });
+
+    const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    const m = text.match(/\[[\s\S]*\]/);
+    if (!m) throw new Error('Réponse marché illisible');
+    const arr = JSON.parse(m[0]);
+
+    const list = (Array.isArray(arr) ? arr : [])
+      .filter(x => x && x.prix_kg != null && !isNaN(parseFloat(x.prix_kg)))
+      .map(x => ({ coupe_key: coupeKey(x.coupe), coupe: x.coupe, prix_kg: Math.round(parseFloat(x.prix_kg) * 100) / 100 }));
+
+    db.setPrixSuggeres(list);
+    res.json({ ok: true, ...db.getPrixSuggeres() });
+  } catch (e) {
+    console.error('PRIX MARCHÉ ERROR:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ─── API VENTES ───────────────────────────────────────────────────────────────
 // Trouver dans le stock le sac qui correspond à une étiquette scannée (avant de vendre)
 app.post('/api/vente/chercher', (req, res) => {

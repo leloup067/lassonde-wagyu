@@ -95,6 +95,16 @@ db.exec(`UPDATE betes SET statut = 'pâturage' WHERE statut = 'en cours' OR stat
 // Migration : colonne photo sur inventaire (nom de fichier de la photo de scan)
 try { db.exec(`ALTER TABLE inventaire ADD COLUMN photo TEXT`); } catch (_) { /* existe déjà */ }
 
+// Prix suggérés du marché (rafraîchis à la demande via recherche web)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS prix_suggere (
+    coupe_key TEXT PRIMARY KEY,
+    coupe     TEXT,
+    prix_kg   REAL,
+    date_maj  TEXT DEFAULT (datetime('now','localtime'))
+  );
+`);
+
 // ─── SEED : CATALOGUE COMPLET LASSONDE — 44 PRODUITS ────────────────────────
 const prixLassonde = [
   // ULTRA PREMIUM
@@ -463,6 +473,30 @@ function getPrixMarche() {
   return db.prepare('SELECT * FROM prix_marche ORDER BY coupe, concurrent').all();
 }
 
+// Prix suggérés du marché (recherche web à la demande)
+function setPrixSuggeres(list) {
+  const upsert = db.prepare(`
+    INSERT INTO prix_suggere (coupe_key, coupe, prix_kg, date_maj)
+    VALUES (?, ?, ?, datetime('now','localtime'))
+    ON CONFLICT(coupe_key) DO UPDATE SET coupe=excluded.coupe, prix_kg=excluded.prix_kg, date_maj=excluded.date_maj
+  `);
+  let n = 0;
+  db.transaction(() => {
+    for (const p of list) {
+      if (!p.coupe_key || p.prix_kg == null) continue;
+      upsert.run(p.coupe_key, p.coupe || p.coupe_key, p.prix_kg);
+      n++;
+    }
+  })();
+  return n;
+}
+
+function getPrixSuggeres() {
+  const rows = db.prepare('SELECT coupe_key, coupe, prix_kg, date_maj FROM prix_suggere').all();
+  const maj  = db.prepare('SELECT MAX(date_maj) AS m FROM prix_suggere').get().m;
+  return { prix: rows, date_maj: maj };
+}
+
 function comparerPrix(coupe) {
   return db.prepare(`
     SELECT
@@ -524,6 +558,8 @@ module.exports = {
   chercherSacDisponible,
   getVentes,
   getPrixMarche,
+  setPrixSuggeres,
+  getPrixSuggeres,
   comparerPrix,
   getDashboard,
 };
