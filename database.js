@@ -213,11 +213,12 @@ function supprimerSac(id) {
   return db.prepare('DELETE FROM inventaire WHERE id = ?').run(id);
 }
 
-function getInventaire({ statut, coupe, limit = 200 } = {}) {
+function getInventaire({ statut, coupe, limit = 10000 } = {}) {
   let sql = 'SELECT * FROM inventaire WHERE 1=1';
   const params = [];
   if (statut) { sql += ' AND statut = ?'; params.push(statut); }
   if (coupe)  { sql += ' AND LOWER(coupe) LIKE ?'; params.push('%' + coupe.toLowerCase() + '%'); }
+  // Le tri FIFO par coupe est fait côté affichage (renderLocalStock)
   sql += ' ORDER BY date_scan DESC LIMIT ?';
   params.push(limit);
   return db.prepare(sql).all(...params);

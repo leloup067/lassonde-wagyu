@@ -30,3 +30,5 @@ lassonde.db-wal
 # Fichiers de déploiement
 vision-test-output/
 RAPPORT-PRECISION-VISION.pdf
+
+backup-prod-*.json
