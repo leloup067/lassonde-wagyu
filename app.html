@@ -313,6 +313,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 .stock-cut-meta{font-family:sans-serif;font-size:11.5px;color:var(--muted);white-space:nowrap}
 .stock-cut-items{background:rgba(0,0,0,.18);border:1px solid var(--border);border-top:none;
   border-radius:0 0 10px 10px;padding:8px}
+.beef-subhead{font-family:sans-serif;font-size:11.5px;color:var(--gold);font-weight:600;
+  padding:8px 4px 5px;margin-top:4px;border-top:1px dashed var(--border);display:flex;
+  align-items:center;gap:8px;flex-wrap:wrap}
+.beef-subhead:first-child{border-top:none;margin-top:0}
+.prio-vendre{background:rgba(110,200,130,.16);color:#7fd494;font-weight:700;font-size:10px;
+  text-transform:uppercase;letter-spacing:.4px;border-radius:20px;padding:3px 9px}
 .stock-cut-items .stock-item{margin-bottom:6px}
 .stock-cut-items .stock-item:last-child{margin-bottom:0}
 .stock-item{background:var(--surface);border-radius:10px;padding:12px 14px;
@@ -1686,8 +1692,11 @@ async function loadAndRenderStock() {
   const body = $('stock-body');
   body.innerHTML = '<div class="empty-state"><div>⏳</div>Chargement…</div>';
   try {
-    // Charge les prix marché en cache (pour affichage) en parallèle
+    // Charge les prix marché + le troupeau (pour l'ordre des bœufs) si pas déjà là
     await loadPrixSuggeres();
+    if (!S.troupeau || !S.troupeau.length) {
+      await fetch('/api/troupeau').then(r => r.json()).then(d => { if (d.ok) S.troupeau = d.troupeau || []; }).catch(() => {});
+    }
     // Essayer d'abord la DB locale
     const r = await fetch('/api/inventaire?statut=disponible').catch(() => null);
     if (r && r.ok) {
@@ -1759,6 +1768,14 @@ function renderLocalStock(items) {
     return;
   }
 
+  // Ordre des bœufs : le plus ancien en inventaire d'abord (par date d'abattage/entrée frigo)
+  const ordreBete = {};
+  (S.troupeau || []).slice()
+    .sort((a, b) => (a.date_abattage || a.date_livraison || '9999').localeCompare(b.date_abattage || b.date_livraison || '9999')
+                 || (a.numero_bete - b.numero_bete))
+    .forEach((b, i) => { ordreBete[b.numero_bete] = { ordre: i + 1, date: b.date_abattage || b.date_livraison, nom: b.nom }; });
+  const beteOrdre = n => (n != null && ordreBete[n]) ? ordreBete[n].ordre : 999;
+
   // Grouper par coupe NORMALISÉE (fusionne les doublons : majuscules, accents, "de boeuf wagyu"…)
   const grouped = {};
   for (const item of items) {
@@ -1766,8 +1783,9 @@ function renderLocalStock(items) {
     if (!grouped[k]) grouped[k] = [];
     grouped[k].push(item);
   }
-  // Tri FIFO dans chaque groupe (plus vieux scan d'abord)
-  for (const k in grouped) grouped[k].sort((a, b) => (a.date_scan || '').localeCompare(b.date_scan || ''));
+  // Tri FIFO : bœuf le plus ancien d'abord, puis scan le plus ancien
+  for (const k in grouped) grouped[k].sort((a, b) =>
+    (beteOrdre(a.numero_bete) - beteOrdre(b.numero_bete)) || (a.date_scan || '').localeCompare(b.date_scan || ''));
 
   const totalVal = items.reduce((s, i) => s + (i.prix_total || 0), 0);
   const summary  = `<div style="background:var(--surface);border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
@@ -1794,28 +1812,56 @@ function renderLocalStock(items) {
         ` · ton prix ${monPrixKg.toFixed(0)} $/kg <span class="${ecart >= 0 ? 'ecart-haut' : 'ecart-bas'}">(${ecart >= 0 ? '+' : ''}${ecart}%)</span>`;
       marcheLigne = `<div class="cut-marche">💡 Marché suggéré : <strong>~${suggere.toFixed(0)} $/kg</strong>${ecartTxt}</div>`;
     }
+    // Combien de bœufs différents dans cette coupe ?
+    const betesCut = [...new Set(g.map(i => i.numero_bete))];
+    const multiBete = betesCut.filter(n => n != null).length > 1;
+    const beteBadge = multiBete ? ` · 🐂 ${betesCut.length} bœufs` : '';
+
+    // Une carte-paquet
+    const itemRow = (item, n) => `
+      <div class="stock-item">
+        <div>
+          <div class="stock-item-name">n°${n} · ${item.poids_kg.toFixed(3)} kg</div>
+          <div class="stock-item-sku">en étalage depuis ${(item.date_scan || '').slice(0,10) || '?'}${!multiBete && item.numero_bete != null ? ' · bête #' + item.numero_bete : ''}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="stock-item-price">${item.prix_total.toFixed(2)} $</div>
+          <div style="font-size:10px;color:var(--muted);font-family:sans-serif">${item.prix_kg.toFixed(2)} $/kg</div>
+        </div>
+        ${item.photo ? `<button class="stock-photo" onclick="ouvrirPhoto(${item.id})" aria-label="Revoir la photo">📷</button>` : ''}
+        <button class="stock-del" onclick="deleteStockItem(${item.id}, '${cId}')" aria-label="Retirer ce sac">✕</button>
+      </div>`;
+
+    let itemsHtml;
+    if (multiBete) {
+      // Sous-grouper par bœuf, le plus ancien d'abord (à écouler en premier)
+      const parBete = {};
+      g.forEach(i => { (parBete[i.numero_bete] = parBete[i.numero_bete] || []).push(i); });
+      const betesOrdonnees = Object.keys(parBete).sort((a, b) => beteOrdre(a) - beteOrdre(b));
+      itemsHtml = betesOrdonnees.map((bn, idx) => {
+        const sous = parBete[bn];
+        const info = ordreBete[bn] || {};
+        const estNul = (bn === 'null' || bn === 'undefined' || bn == null);
+        const dateTxt = info.date ? ' · entré ' + info.date.slice(0,10) : '';
+        const prio = (idx === 0 && !estNul) ? '<span class="prio-vendre">à écouler en premier</span>' : '';
+        const label = estNul ? 'Sans bœuf assigné' : `Bœuf #${bn}${info.nom ? ' (' + info.nom + ')' : ''}${dateTxt}`;
+        return `<div class="beef-subhead">🐂 ${label} · ${sous.length} paquet${sous.length>1?'s':''} ${prio}</div>`
+             + sous.map((item, i) => itemRow(item, i + 1)).join('');
+      }).join('');
+    } else {
+      itemsHtml = g.map((item, i) => itemRow(item, i + 1)).join('');
+    }
+
     return `
     <div class="stock-cut">
       <button class="stock-cut-head" onclick="toggleCut(this)">
         <span class="stock-cut-chevron">▸</span>
         <span class="stock-cut-name">${coupe}</span>
-        <span class="stock-cut-meta">${g.length} · ${poids.toFixed(1)} kg · ${val.toFixed(0)} $</span>
+        <span class="stock-cut-meta">${g.length} · ${poids.toFixed(1)} kg · ${val.toFixed(0)} $${beteBadge}</span>
       </button>
       <div class="stock-cut-items" style="display:none">
         ${marcheLigne}
-        ${g.map((item, i) => `
-          <div class="stock-item">
-            <div>
-              <div class="stock-item-name">n°${i + 1} · ${item.poids_kg.toFixed(3)} kg</div>
-              <div class="stock-item-sku">en étalage depuis ${(item.date_scan || '').slice(0,10) || '?'}${item.numero_bete != null ? ' · bête #' + item.numero_bete : ''}</div>
-            </div>
-            <div style="text-align:right">
-              <div class="stock-item-price">${item.prix_total.toFixed(2)} $</div>
-              <div style="font-size:10px;color:var(--muted);font-family:sans-serif">${item.prix_kg.toFixed(2)} $/kg</div>
-            </div>
-            ${item.photo ? `<button class="stock-photo" onclick="ouvrirPhoto(${item.id})" aria-label="Revoir la photo">📷</button>` : ''}
-            <button class="stock-del" onclick="deleteStockItem(${item.id}, '${cId}')" aria-label="Retirer ce sac">✕</button>
-          </div>`).join('')}
+        ${itemsHtml}
       </div>
     </div>`;
   }).join('');

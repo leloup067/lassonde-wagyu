@@ -212,7 +212,7 @@ function insertSac(data) {
     statut:             data.statut              || 'disponible',
     shopify_product_id: data.shopify_product_id  || null,
     date_livraison:     data.date_livraison      || null,
-    numero_bete:        data.numero_bete         || null,
+    numero_bete:        data.numero_bete != null ? data.numero_bete : null,  // garde le bœuf #0
   };
   const result = stmtInsertSac.run(row);
   return result.lastInsertRowid;
