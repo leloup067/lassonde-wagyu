@@ -173,6 +173,15 @@ app.post('/api/troupeau/:numero/rattacher-orphelins', (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Retirer un bœuf du troupeau (ses morceaux sont détachés, pas supprimés)
+app.delete('/api/troupeau/:numero', (req, res) => {
+  try {
+    const r = db.supprimerBete(parseInt(req.params.numero));
+    if (!r.supprime) return res.status(404).json({ ok: false, error: 'bête introuvable' });
+    res.json({ ok: true, ...r });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // Import en masse du troupeau (liste papier scannée ou CSV) — max 2000 bêtes
 app.post('/api/troupeau/import', (req, res) => {
   try {
@@ -442,6 +451,15 @@ app.post('/api/ventes', (req, res) => {
 app.get('/api/ventes', (req, res) => {
   try { res.json({ ok: true, ventes: db.getVentes() }); }
   catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Annuler une vente → remet le morceau en stock
+app.delete('/api/ventes/:id', (req, res) => {
+  try {
+    const r = db.annulerVente(parseInt(req.params.id));
+    if (!r.ok) return res.status(404).json({ ok: false, error: 'vente introuvable' });
+    res.json({ ok: true, ...r });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 // ─── API DASHBOARD ────────────────────────────────────────────────────────────

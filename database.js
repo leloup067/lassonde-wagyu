@@ -257,6 +257,13 @@ function rattacherOrphelins(numero_bete) {
   return db.prepare('UPDATE inventaire SET numero_bete = ? WHERE numero_bete IS NULL').run(numero_bete);
 }
 
+// Retire un bœuf du troupeau (détache ses morceaux plutôt que de les perdre)
+function supprimerBete(numero_bete) {
+  const detache = db.prepare('UPDATE inventaire SET numero_bete = NULL WHERE numero_bete = ?').run(numero_bete);
+  const r = db.prepare('DELETE FROM betes WHERE numero_bete = ?').run(numero_bete);
+  return { supprime: r.changes, morceaux_detaches: detache.changes };
+}
+
 function getInventaire({ statut, coupe, limit = 10000 } = {}) {
   let sql = 'SELECT * FROM inventaire WHERE 1=1';
   const params = [];
@@ -468,6 +475,19 @@ function chercherSacDisponible(coupe, poidsKg) {
     Math.abs((s.poids_kg || 0) - poidsKg) < Math.abs((best.poids_kg || 0) - poidsKg) ? s : best);
 }
 
+// Annuler une vente : supprime la vente ET remet le morceau en stock (disponible)
+function annulerVente(id) {
+  const vente = db.prepare('SELECT inventaire_id FROM ventes WHERE id = ?').get(id);
+  if (!vente) return { ok: false };
+  db.transaction(() => {
+    db.prepare('DELETE FROM ventes WHERE id = ?').run(id);
+    if (vente.inventaire_id) {
+      db.prepare(`UPDATE inventaire SET statut = 'disponible' WHERE id = ?`).run(vente.inventaire_id);
+    }
+  })();
+  return { ok: true, inventaire_id: vente.inventaire_id };
+}
+
 // Historique des ventes (avec coupe + bête depuis l'inventaire)
 function getVentes(limit = 50) {
   return db.prepare(`
@@ -563,6 +583,8 @@ module.exports = {
   getResume,
   upsertBete,
   importerBetes,
+  supprimerBete,
+  annulerVente,
   getBetes,
   getTroupeau,
   setStatutBete,

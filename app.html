@@ -460,6 +460,12 @@ button,label[for],[role=button]{cursor:pointer}
 .bete-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
   padding:14px;margin-bottom:10px}
 .bete-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.bete-card-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.bete-del,.vente-del{flex-shrink:0;width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);
+  font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
+.bete-del:active,.vente-del:active{background:rgba(230,90,90,.18);border-color:var(--red);color:var(--red)}
+.vente-del{margin-left:10px}
 .bete-id{font-size:15px;color:var(--text)}
 .bete-id small{color:var(--muted);font-family:sans-serif;font-size:11px;display:block;margin-top:2px}
 .bete-statut{font-family:sans-serif;font-size:10px;font-weight:700;letter-spacing:.5px;
@@ -2075,12 +2081,30 @@ function renderBeteCard(b) {
       <div class="bete-id">${b.nom ? b.nom + ' · ' : ''}Bête #${b.numero_bete}
         <small>${b.tag_atq || 'tag ATQ non renseigné'}</small>
       </div>
-      <span class="bete-statut ${statutClass}">${b.statut}</span>
+      <div class="bete-card-right">
+        <span class="bete-statut ${statutClass}">${b.statut}</span>
+        <button class="bete-del" onclick="supprimerBeteUI(${b.numero_bete}, '${(b.nom || 'Bête #' + b.numero_bete).replace(/'/g, '’')}', ${b.nb_morceaux || 0})" aria-label="Retirer ce bœuf">✕</button>
+      </div>
     </div>
     <div class="bete-meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
     ${frigoStats}
     ${actions}
   </div>`;
+}
+
+async function supprimerBeteUI(numero, nom, nbMorceaux) {
+  const avert = nbMorceaux > 0
+    ? `\n\n${nbMorceaux} morceau(x) lui sont rattachés : ils resteront dans le stock mais sans bœuf.`
+    : '';
+  if (!confirm(`Retirer ${nom} du troupeau ?${avert}`)) return;
+  try {
+    const r = await fetch(`/api/troupeau/${numero}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    toast(`✓ ${nom} retiré` + (d.morceaux_detaches ? ` · ${d.morceaux_detaches} morceaux détachés` : ''), 3200);
+    if (S.beteActive === numero) { S.beteActive = null; updateBeteActiveBanner(); }
+    loadTroupeau();
+  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
 }
 
 function renderTroupeau() {
@@ -2623,8 +2647,20 @@ async function loadVentesRecentes() {
           <div class="vente-row-sub">${(v.date_vente || '').slice(0,16)}${v.numero_bete ? ' · bête #' + v.numero_bete : ''}</div>
         </div>
         <div class="vente-row-prix">${v.prix_vendu != null ? v.prix_vendu.toFixed(2) + ' $' : ''}</div>
+        <button class="vente-del" onclick="annulerVenteUI(${v.id}, '${(v.coupe || '').replace(/'/g, '’')}')" aria-label="Annuler cette vente">✕</button>
       </div>`).join('');
   } catch (_) {}
+}
+
+async function annulerVenteUI(id, coupe) {
+  if (!confirm(`Annuler la vente${coupe ? ' de ' + coupe : ''} ? Le morceau retournera dans le stock.`)) return;
+  try {
+    const r = await fetch(`/api/ventes/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    toast('✓ Vente annulée — morceau remis en stock', 3200);
+    loadVentesRecentes();
+  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
 }
 
 async function scannerVente(file) {
