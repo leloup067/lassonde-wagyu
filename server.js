@@ -215,7 +215,7 @@ Règles :
 
     const result = await new Promise((resolve, reject) => {
       const body = JSON.stringify({
-        model: 'claude-opus-4-7',
+        model: 'claude-haiku-4-5',
         max_tokens: 8192,
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: mimeType, data: image } },
@@ -306,7 +306,7 @@ Règles :
 
     const result = await new Promise((resolve, reject) => {
       const body = JSON.stringify({
-        model: 'claude-opus-4-7',
+        model: 'claude-haiku-4-5',
         max_tokens: 4096,
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: mimeType, data: image } },
@@ -573,7 +573,7 @@ Sinon, réponds UNIQUEMENT avec ce JSON (sans texte avant ni après) :
 
     const result = await new Promise((resolve, reject) => {
       const body = JSON.stringify({
-        model: 'claude-opus-4-7',
+        model: 'claude-haiku-4-5',
         max_tokens: 512,
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: mimeType, data: image } },
