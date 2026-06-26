@@ -258,12 +258,12 @@ Règles :
 // Changer le statut d'une bête : pâturage → abattoir → frigo → vendu
 app.put('/api/troupeau/:numero/statut', (req, res) => {
   try {
-    const { statut, date_abattage } = req.body;
+    const { statut, date_abattage, date_envoi_abattage } = req.body;
     const STATUTS = ['pâturage', 'abattoir', 'frigo', 'vendu'];
     if (!STATUTS.includes(statut)) {
       return res.status(400).json({ ok: false, error: `statut doit être : ${STATUTS.join(' | ')}` });
     }
-    const bete = db.setStatutBete(parseInt(req.params.numero), statut, date_abattage || null);
+    const bete = db.setStatutBete(parseInt(req.params.numero), statut, { date_abattage, date_envoi_abattage });
     if (!bete) return res.status(404).json({ ok: false, error: 'bête introuvable' });
     res.json({ ok: true, bete });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }

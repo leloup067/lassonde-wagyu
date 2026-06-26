@@ -532,6 +532,31 @@ button,label[for],[role=button]{cursor:pointer}
 #btn-import-cancel{background:transparent;border:1px solid var(--border);color:var(--muted)}
 #btn-import-ok{background:var(--gold);border:none;color:#0a0a0a;font-weight:700}
 
+/* ── BANNIÈRE BÊTE ACTIVE (scanner) ── */
+#bete-active-banner{width:100%;display:flex;justify-content:space-between;align-items:center;
+  gap:10px;background:rgba(200,169,110,.1);border:1px solid var(--gold);border-radius:10px;
+  padding:11px 14px;margin-bottom:14px;color:var(--gold);font-family:sans-serif;font-size:13px}
+#bete-active-banner.aucun{background:rgba(230,170,80,.1);border-color:rgba(230,170,80,.5);color:#e8b46a}
+#bete-active-txt{font-weight:600;text-align:left}
+#bete-active-edit{font-size:11px;color:var(--muted);white-space:nowrap}
+
+/* ── MODAL BÊTE SCAN ── */
+#modal-bete-scan{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;
+  align-items:flex-end;justify-content:center;z-index:70}
+#modal-bete-scan.show{display:flex}
+#modal-bete-scan-inner{position:relative;background:var(--bg);border:1px solid var(--border);
+  border-radius:16px 16px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+  width:100%;max-width:480px;max-height:88vh;overflow-y:auto}
+#modal-bete-scan-inner h3{color:var(--gold);font-size:16px;margin:0 0 4px}
+.modal-sub{font-family:sans-serif;font-size:12px;color:var(--muted);margin:0 0 14px}
+#modal-bete-scan-inner select,#modal-bete-scan-inner input{width:100%;background:var(--surface);
+  border:1px solid var(--border);color:var(--text);border-radius:8px;padding:11px 12px;
+  font-size:15px;font-family:inherit}
+#modal-bete-scan-btns{display:flex;gap:10px;margin-top:16px}
+#modal-bete-scan-btns button{flex:1;border-radius:10px;padding:13px;font-family:sans-serif;font-size:14px}
+#btn-bs-cancel{background:transparent;border:1px solid var(--border);color:var(--muted)}
+#btn-bs-ok{background:var(--gold);border:none;color:#0a0a0a;font-weight:700}
+
 /* ── MODAL BÊTE ── */
 #modal-bete{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;
   align-items:flex-end;justify-content:center;z-index:60}
@@ -632,6 +657,12 @@ button,label[for],[role=button]{cursor:pointer}
 
     <!-- ══ SCANNER ══ -->
     <div id="panel-scanner" class="panel active">
+
+      <!-- Bannière : quel bœuf on scanne (toujours visible dans le Scanner) -->
+      <button id="bete-active-banner" onclick="ouvrirModalBeteScan()">
+        <span id="bete-active-txt">Choisir le bœuf à scanner</span>
+        <span id="bete-active-edit">changer ⌄</span>
+      </button>
 
       <!-- Vue 1 : accueil -->
       <div id="view-idle">
@@ -954,6 +985,37 @@ button,label[for],[role=button]{cursor:pointer}
 <div id="cam-flash"></div>
 
 <!-- Modal : import troupeau en masse -->
+<!-- Modal : quel bœuf on scanne (avant de scanner) -->
+<div id="modal-bete-scan">
+  <div id="modal-bete-scan-inner">
+    <button class="modal-close-x" id="x-bete-scan" aria-label="Fermer">✕</button>
+    <h3>Quel bœuf scannes-tu ?</h3>
+    <p class="modal-sub">Pour ne pas mélanger son stock avec les autres bœufs.</p>
+
+    <div class="card-group">
+      <div class="card-group-title">Un bœuf déjà au frigo</div>
+      <div class="field">
+        <select id="bs-existant"><option value="">— nouveau bœuf ci-dessous —</option></select>
+      </div>
+    </div>
+
+    <div class="card-group" id="bs-nouveau-grp">
+      <div class="card-group-title">Ou un nouveau bœuf qui arrive de l'abattoir</div>
+      <div class="field"><label>Nom du bœuf</label>
+        <input type="text" id="bs-nom" placeholder="ex: Kuro, Bœuf #2…"></div>
+      <div class="field"><label>Date amené (livraison)</label>
+        <input type="date" id="bs-amene"></div>
+      <div class="field"><label>Date d'abattage</label>
+        <input type="date" id="bs-abattu"></div>
+    </div>
+
+    <div id="modal-bete-scan-btns">
+      <button id="btn-bs-cancel">Annuler</button>
+      <button id="btn-bs-ok">✓ Commencer le scan</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-import">
   <div id="modal-import-inner">
     <button class="modal-close-x" id="x-import" aria-label="Fermer">✕</button>
@@ -1416,7 +1478,7 @@ async function confirmItems() {
         prix_kg:       parseFloat(form.prixKg)   || 0,
         prix_total:    parseFloat(form.total)    || 0,
         meilleur_avant: form.meilleurAvant || null,
-        numero_bete:   parseInt($('f-bete').value) || null,
+        numero_bete:   lireBete('f-bete'),
         photo:         S.currentPhoto || null,
       };
       const r = await fetch('/api/inventaire', {
@@ -1566,10 +1628,17 @@ async function gotoBurstReview() {
   renderBurstReview();
 }
 
+// Lit le bœuf d'un select, avec repli sur le bœuf actif de la session (gère le #0)
+function lireBete(selectId) {
+  const v = $(selectId) ? $(selectId).value : '';
+  if (v !== '') return parseInt(v);
+  return S.beteActive != null ? S.beteActive : null;
+}
+
 function remplirSelectBurstBete() {
   const sel = $('burst-bete');
   if (!sel) return;
-  const current = sel.value;
+  const current = sel.value || (S.beteActive != null ? String(S.beteActive) : '');
   const frigo  = (S.troupeau || []).filter(b => b.statut === 'frigo');
   const autres = (S.troupeau || []).filter(b => b.statut !== 'frigo' && b.statut !== 'vendu');
   sel.innerHTML = '<option value="">— aucune —</option>'
@@ -1646,7 +1715,7 @@ async function confirmBurst() {
     return;
   }
 
-  const numeroBete = parseInt($('burst-bete').value) || null;
+  const numeroBete = lireBete('burst-bete');
   $('btn-burst-confirm').disabled = true;
   showLoader(`Envoi de ${cards.length} sacs…`);
 
@@ -1972,9 +2041,11 @@ function renderBeteCard(b) {
     const restant = AGE_ABATTAGE_MOIS - age;
     meta.push(restant > 0 ? `Abattage dans <strong>~${restant} mois</strong>` : `<strong>Prêt pour l'abattage</strong>`);
   }
-  if (b.poids_vif_kg)   meta.push(`Poids vif <strong>${b.poids_vif_kg} kg</strong>`);
-  if (b.date_abattage)  meta.push(`Abattu le <strong>${b.date_abattage}</strong>`);
-  if (b.notes)          meta.push(b.notes);
+  if (b.poids_vif_kg)         meta.push(`Poids vif <strong>${b.poids_vif_kg} kg</strong>`);
+  if (b.date_envoi_abattage)  meta.push(`Envoyé à l'abattage le <strong>${b.date_envoi_abattage}</strong>`);
+  if (b.date_abattage)        meta.push(`Abattu le <strong>${b.date_abattage}</strong>`);
+  if (b.date_livraison && b.statut === 'frigo') meta.push(`Amené le <strong>${b.date_livraison}</strong>`);
+  if (b.notes)                meta.push(b.notes);
 
   // Stats frigo : morceaux scannés liés à cette bête
   let frigoStats = '';
@@ -1990,13 +2061,12 @@ function renderBeteCard(b) {
   let actions = '';
   if (b.statut === 'pâturage') {
     actions = `<div class="bete-actions">
-      <button onclick="changerStatutBete(${b.numero_bete}, 'abattoir')">→ Abattoir</button>
-      <button class="primary" onclick="changerStatutBete(${b.numero_bete}, 'frigo')">→ Frigo (abattu)</button>
+      <button class="primary" onclick="changerStatutBete(${b.numero_bete}, 'abattoir')">🚚 Envoyer à l'abattage</button>
     </div>`;
   } else if (b.statut === 'abattoir') {
     actions = `<div class="bete-actions">
       <button onclick="changerStatutBete(${b.numero_bete}, 'pâturage')">← Pâturage</button>
-      <button class="primary" onclick="changerStatutBete(${b.numero_bete}, 'frigo')">→ Frigo (abattu)</button>
+      <button class="primary" onclick="changerStatutBete(${b.numero_bete}, 'frigo')">❄️ Rentré au frigo</button>
     </div>`;
   }
 
@@ -2063,7 +2133,9 @@ async function loadTroupeau() {
 async function changerStatutBete(numero, statut) {
   try {
     const payload = { statut };
-    if (statut === 'frigo') payload.date_abattage = new Date().toISOString().slice(0, 10);
+    // Date enregistrée automatiquement selon la transition
+    if (statut === 'abattoir') payload.date_envoi_abattage = todayISO();
+    if (statut === 'frigo')    payload.date_abattage = todayISO();
     const r = await fetch(`/api/troupeau/${numero}/statut`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -2071,7 +2143,8 @@ async function changerStatutBete(numero, statut) {
     });
     const d = await r.json();
     if (!d.ok) throw new Error(d.error);
-    toast(`Bête #${numero} → ${statut}`);
+    const libelle = { 'abattoir': 'envoyé à l\'abattage', 'frigo': 'rentré au frigo', 'pâturage': 'remis au pâturage', 'vendu': 'vendu' }[statut] || statut;
+    toast(`Bête #${numero} — ${libelle}`);
     loadTroupeau();
   } catch (e) { toast('Erreur : ' + e.message, 3200); }
 }
@@ -2080,13 +2153,83 @@ async function changerStatutBete(numero, statut) {
 function remplirSelectBetes() {
   const sel = $('f-bete');
   if (!sel || !S.troupeau) return;
-  const current = sel.value;
+  const current = sel.value || (S.beteActive != null ? String(S.beteActive) : '');
   const frigo = S.troupeau.filter(b => b.statut === 'frigo');
   const autres = S.troupeau.filter(b => b.statut !== 'frigo' && b.statut !== 'vendu');
   sel.innerHTML = '<option value="">— aucune —</option>'
     + frigo.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · frigo${b.tag_atq ? ' · ' + b.tag_atq : ''}</option>`).join('')
     + autres.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · ${b.statut}</option>`).join('');
   if (current) sel.value = current;
+}
+
+// ── Bœuf actif pour la session de scan ──
+function beteNom(n) {
+  const b = (S.troupeau || []).find(x => x.numero_bete === n);
+  return b ? (b.nom ? b.nom + ' (#' + n + ')' : 'Bœuf #' + n) : 'Bœuf #' + n;
+}
+
+function updateBeteActiveBanner() {
+  const banner = $('bete-active-banner');
+  if (!banner) return;
+  if (S.beteActive != null) {
+    $('bete-active-txt').textContent = '🐂 Scan vers : ' + beteNom(S.beteActive);
+    banner.classList.remove('aucun');
+  } else {
+    $('bete-active-txt').textContent = '⚠ Choisir le bœuf à scanner';
+    banner.classList.add('aucun');
+  }
+}
+
+function ouvrirModalBeteScan() {
+  // Remplit la liste des bœufs existants (frigo/abattoir en premier)
+  const sel = $('bs-existant');
+  const dispo = (S.troupeau || []).filter(b => b.statut !== 'vendu');
+  dispo.sort((a, b) => (a.statut === 'frigo' ? 0 : 1) - (b.statut === 'frigo' ? 0 : 1));
+  sel.innerHTML = '<option value="">— nouveau bœuf ci-dessous —</option>'
+    + dispo.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · ${b.statut}</option>`).join('');
+  if (S.beteActive != null) sel.value = String(S.beteActive);
+  $('bs-abattu').value = todayISO();
+  $('modal-bete-scan').classList.add('show');
+}
+
+async function demarrerBeteScan() {
+  const existant = $('bs-existant').value;
+  try {
+    if (existant !== '') {
+      // Bœuf existant → devient le bœuf actif (et passe au frigo s'il ne l'est pas)
+      const num = parseInt(existant);
+      const b = (S.troupeau || []).find(x => x.numero_bete === num);
+      if (b && b.statut !== 'frigo') {
+        await fetch(`/api/troupeau/${num}/statut`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ statut: 'frigo', date_abattage: todayISO() }) });
+      }
+      S.beteActive = num;
+    } else {
+      // Nouveau bœuf
+      const nom = $('bs-nom').value.trim();
+      if (!nom && !$('bs-amene').value && !$('bs-abattu').value) { toast('Donne un nom ou choisis un bœuf existant', 3000); return; }
+      const nums = (S.troupeau || []).map(b => b.numero_bete);
+      const numero = nums.length ? Math.max(...nums) + 1 : 1;
+      const r = await fetch('/api/troupeau', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numero_bete:    numero,
+          nom:            nom || ('Bœuf #' + numero),
+          statut:         'frigo',
+          date_livraison: $('bs-amene').value || null,
+          date_abattage:  $('bs-abattu').value || todayISO(),
+        }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error);
+      S.beteActive = numero;
+    }
+    // Recharge le troupeau + applique
+    await fetch('/api/troupeau').then(r => r.json()).then(d => { if (d.ok) S.troupeau = d.troupeau || []; });
+    remplirSelectBetes(); remplirSelectBurstBete();
+    updateBeteActiveBanner();
+    $('modal-bete-scan').classList.remove('show');
+    ['bs-nom','bs-amene'].forEach(id => $(id).value = '');
+    toast('✓ Scan vers ' + beteNom(S.beteActive), 2800);
+  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
 }
 
 // Modal ajout bête
@@ -2574,15 +2717,20 @@ function switchTab(tab) {
 // ══════════════════════════════════════════════════════
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
 
-$('btn-camera').addEventListener('click', () => $('input-camera').click());
-$('btn-upload').addEventListener('click', () => $('input-file').click());
+// Avant de scanner : exige de choisir le bœuf (sauf si déjà choisi cette session)
+function exigerBete(action) {
+  if (S.beteActive == null) { ouvrirModalBeteScan(); toast('Choisis d\'abord le bœuf à scanner', 2800); return; }
+  action();
+}
+$('btn-camera').addEventListener('click', () => exigerBete(() => $('input-camera').click()));
+$('btn-upload').addEventListener('click', () => exigerBete(() => $('input-file').click()));
 
 function onFileSelect(e) { if (e.target.files[0]) handlePhoto(e.target.files[0]); e.target.value = ''; }
 $('input-camera').addEventListener('change', onFileSelect);
 $('input-file').addEventListener('change',   onFileSelect);
 
 // ── Scan en rafale ──
-$('btn-burst').addEventListener('click', startBurst);
+$('btn-burst').addEventListener('click', () => exigerBete(startBurst));
 $('btn-burst-next').addEventListener('click', () => $('input-burst-cam').click());
 $('btn-burst-from-gallery').addEventListener('click', () => $('input-burst-multi').click());
 $('btn-burst-done').addEventListener('click', gotoBurstReview);
@@ -2628,6 +2776,12 @@ $('btn-add-bete').addEventListener('click', ouvrirModalBete);
 $('btn-bete-cancel').addEventListener('click', () => $('modal-bete').classList.remove('show'));
 $('btn-bete-save').addEventListener('click', sauverBete);
 $('troupeau-search').addEventListener('input', renderTroupeau);
+
+// Bœuf à scanner (session)
+$('x-bete-scan').addEventListener('click', () => $('modal-bete-scan').classList.remove('show'));
+$('btn-bs-cancel').addEventListener('click', () => $('modal-bete-scan').classList.remove('show'));
+$('btn-bs-ok').addEventListener('click', demarrerBeteScan);
+$('modal-bete-scan').addEventListener('click', e => { if (e.target.id === 'modal-bete-scan') $('modal-bete-scan').classList.remove('show'); });
 
 // X fermer (haut-droite) + tap sur le fond = fermer
 $('x-bete').addEventListener('click', () => $('modal-bete').classList.remove('show'));
@@ -2761,7 +2915,7 @@ $('chat-input').addEventListener('input', function () {
 
   // Charger le troupeau en arrière-plan (remplit le sélecteur Bête du scanner)
   fetch('/api/troupeau').then(r => r.json()).then(d => {
-    if (d.ok) { S.troupeau = d.troupeau || []; remplirSelectBetes(); }
+    if (d.ok) { S.troupeau = d.troupeau || []; remplirSelectBetes(); updateBeteActiveBanner(); }
   }).catch(() => {});
 
   // Restaurer une vérification de commande en cours (test client)

@@ -85,6 +85,7 @@ const MIGRATIONS_BETES = [
   `ALTER TABLE betes ADD COLUMN date_abattage TEXT`,
   `ALTER TABLE betes ADD COLUMN poids_carcasse_kg REAL`,
   `ALTER TABLE betes ADD COLUMN notes TEXT`,
+  `ALTER TABLE betes ADD COLUMN date_envoi_abattage TEXT`,
 ];
 for (const m of MIGRATIONS_BETES) {
   try { db.exec(m); } catch (_) { /* colonne existe déjà */ }
@@ -391,13 +392,19 @@ function getTroupeau() {
   `).all();
 }
 
-function setStatutBete(numero_bete, statut, date_abattage = null) {
+function setStatutBete(numero_bete, statut, dates = {}) {
+  // dates: { date_abattage, date_envoi_abattage } — chacune optionnelle
   db.prepare(`
     UPDATE betes SET
-      statut        = @statut,
-      date_abattage = COALESCE(@date_abattage, date_abattage)
+      statut              = @statut,
+      date_abattage       = COALESCE(@date_abattage, date_abattage),
+      date_envoi_abattage = COALESCE(@date_envoi_abattage, date_envoi_abattage)
     WHERE numero_bete = @numero_bete
-  `).run({ numero_bete, statut, date_abattage });
+  `).run({
+    numero_bete, statut,
+    date_abattage:       dates.date_abattage       || null,
+    date_envoi_abattage: dates.date_envoi_abattage || null,
+  });
   return db.prepare('SELECT * FROM betes WHERE numero_bete = ?').get(numero_bete);
 }
 
