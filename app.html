@@ -484,6 +484,7 @@ button,label[for],[role=button]{cursor:pointer}
   font-family:sans-serif;font-size:11.5px;color:var(--muted)}
 .bete-meta strong{color:var(--text);font-weight:600}
 .bete-frigo-stats{display:flex;gap:8px;margin-top:12px}
+.bete-repro-stats{display:flex;gap:8px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
 .bete-stat{flex:1;background:rgba(200,169,110,.07);border-radius:8px;padding:8px 6px;text-align:center}
 .bete-stat-num{display:block;font-size:14px;color:var(--gold)}
 .bete-stat-lbl{display:block;font-family:sans-serif;font-size:9.5px;color:var(--muted);
@@ -2167,6 +2168,18 @@ function renderBeteCard(b) {
     </div>`;
   }
 
+  // Stats de reproduction pour les vaches
+  let reproStats = '';
+  if (b.type === 'vache' && (b.vivants || b.morts)) {
+    const totalDescendants = (b.vivants || 0) + (b.morts || 0);
+    const tauxMortalite = totalDescendants > 0 ? Math.round((b.morts || 0) / totalDescendants * 100) : 0;
+    reproStats = `<div class="bete-repro-stats">
+      <div class="bete-stat"><span class="bete-stat-num">${b.vivants || 0}</span><span class="bete-stat-lbl">veaux vivants</span></div>
+      <div class="bete-stat"><span class="bete-stat-num">${b.morts || 0}</span><span class="bete-stat-lbl">fausses couches</span></div>
+      ${totalDescendants > 0 ? `<div class="bete-stat"><span class="bete-stat-num">${tauxMortalite}%</span><span class="bete-stat-lbl">mortalité</span></div>` : ''}
+    </div>`;
+  }
+
   let actions = '';
   if (b.statut === 'pâturage') {
     actions = `<div class="bete-actions">
@@ -2194,6 +2207,7 @@ function renderBeteCard(b) {
     </div>
     <div class="bete-meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
     ${frigoStats}
+    ${reproStats}
     ${actions}
   </div>`;
 }

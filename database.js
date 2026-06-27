@@ -99,6 +99,9 @@ try { db.exec(`ALTER TABLE inventaire ADD COLUMN photo TEXT`); } catch (_) { /* 
 // Migration : mode de paiement sur les ventes (Interac / comptant)
 try { db.exec(`ALTER TABLE ventes ADD COLUMN mode_paiement TEXT`); } catch (_) { /* existe déjà */ }
 
+// Migration : tag de la mère pour pedigree (vaches reproductrices)
+try { db.exec(`ALTER TABLE betes ADD COLUMN mere_tag TEXT`); } catch (_) { /* existe déjà */ }
+
 // Prix suggérés du marché (rafraîchis à la demande via recherche web)
 db.exec(`
   CREATE TABLE IF NOT EXISTS prix_suggere (
@@ -527,6 +530,45 @@ function getVentes(limit = 50) {
   `).all(limit);
 }
 
+// Stats de reproduction pour une vache : nombre de veaux vivants et morts
+function getStatsVache(tag_atq) {
+  if (!tag_atq) return { vivants: 0, morts: 0 };
+
+  // Chercher tous les descendants (notes contient "Mère: TAG")
+  const pattern = `Mère: ${tag_atq}`;
+  const all = db.prepare(`
+    SELECT notes FROM betes
+    WHERE notes LIKE ? AND type IN ('veau', 'bœuf')
+  `).all(`%${pattern}%`);
+
+  const vivants = all.filter(r => !r.notes?.includes('MORT')).length;
+  const morts = all.filter(r => r.notes?.includes('MORT')).length;
+
+  return { vivants, morts };
+}
+
+// Calcul des stats pour TOUTES les vaches (optimisé: 1 requête)
+function getAllStatsVaches() {
+  const result = {};
+  // Récupérer tous les animaux avec une mère mentionnée
+  const all = db.prepare(`
+    SELECT notes FROM betes
+    WHERE notes LIKE 'Mère:%' AND type IN ('veau', 'bœuf')
+  `).all();
+
+  // Grouper par mère
+  all.forEach(r => {
+    const match = r.notes?.match(/Mère:\s*(\d+)/);
+    if (!match) return;
+    const merTag = match[1];
+    if (!result[merTag]) result[merTag] = { vivants: 0, morts: 0 };
+    if (r.notes?.includes('MORT')) result[merTag].morts++;
+    else result[merTag].vivants++;
+  });
+
+  return result;
+}
+
 // ─── PRIX MARCHÉ ──────────────────────────────────────────────────────────────
 function getPrixMarche() {
   return db.prepare('SELECT * FROM prix_marche ORDER BY coupe, concurrent').all();
@@ -621,6 +663,8 @@ module.exports = {
   enregistrerVente,
   chercherSacDisponible,
   getVentes,
+  getStatsVache,
+  getAllStatsVaches,
   getPrixMarche,
   setPrixSuggeres,
   getPrixSuggeres,

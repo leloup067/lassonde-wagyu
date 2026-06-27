@@ -163,7 +163,16 @@ app.post('/api/betes', (req, res) => {
 
 // Liste complète du troupeau avec agrégats morceaux par bête
 app.get('/api/troupeau', (req, res) => {
-  try { res.json({ ok: true, troupeau: db.getTroupeau() }); }
+  try {
+    const troupeau = db.getTroupeau();
+    const statsVaches = db.getAllStatsVaches();
+    // Ajouter les stats de reproduction à chaque vache
+    const troupeauAvecStats = troupeau.map(b => ({
+      ...b,
+      ...(b.type === 'vache' && b.tag_atq ? statsVaches[b.tag_atq] || { vivants: 0, morts: 0 } : {})
+    }));
+    res.json({ ok: true, troupeau: troupeauAvecStats });
+  }
   catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
