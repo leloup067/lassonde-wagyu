@@ -281,6 +281,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
    STOCK
 ════════════════════ */
 #panel-stock{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;padding-bottom:80px}
+/* Vente : défilement fluide (sinon la liste des ventes déborde sans pouvoir descendre) */
+#panel-vente{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+#vente-idle,#vente-match{min-height:0}
 #stock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 #stock-title{font-size:16px}
 #stock-header-btns{display:flex;gap:8px}
