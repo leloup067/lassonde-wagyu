@@ -283,6 +283,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 #panel-stock{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;padding-bottom:80px}
 /* Vente : défilement fluide (sinon la liste des ventes déborde sans pouvoir descendre) */
 #panel-vente{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+/* Défilement fluide pour TOUS les onglets (Troupeau, Vérif héritaient de overflow:hidden) */
+#panel-troupeau{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+#panel-verif{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
 #vente-idle,#vente-match{min-height:0}
 #stock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 #stock-title{font-size:16px}
@@ -592,10 +595,40 @@ button,label[for],[role=button]{cursor:pointer}
   border-radius:12px;padding:15px 28px;font-family:sans-serif;font-size:15px;font-weight:700}
 
 /* ── VENTE ── */
-#btn-vente-scan{display:block;margin:8px auto 24px;background:var(--gold);color:#0a0a0a;border:none;
+#btn-vente-scan{display:block;width:100%;margin:0 0 16px;background:var(--gold);color:#0a0a0a;border:none;
   border-radius:12px;padding:15px 28px;font-family:sans-serif;font-size:15px;font-weight:700}
 #vente-analyze-status{display:flex;flex-direction:column;align-items:center;gap:18px;
-  padding:60px 20px;font-family:sans-serif;font-size:13px;color:var(--muted)}
+  padding:40px 20px;font-family:sans-serif;font-size:13px;color:var(--muted)}
+/* Panier */
+#vente-panier{background:var(--surface);border:1px solid var(--gold);border-radius:14px;
+  padding:14px;margin-bottom:18px}
+.panier-head{font-family:sans-serif;font-size:12px;color:var(--gold);font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.panier-item{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;margin-bottom:6px}
+.panier-item-info{flex:1;min-width:0}
+.panier-item-coupe{font-size:14px;color:var(--text)}
+.panier-item-sub{font-family:sans-serif;font-size:11px;color:var(--muted);margin-top:1px}
+.panier-item-prix{font-size:14px;color:var(--gold);white-space:nowrap}
+.panier-item-del{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.05);
+  border:1px solid var(--border);color:var(--muted);font-size:12px}
+.panier-item-del:active{background:rgba(230,90,90,.18);border-color:var(--red);color:var(--red)}
+#panier-total{display:flex;justify-content:space-between;align-items:center;font-family:sans-serif;
+  font-size:13px;color:var(--muted);padding:12px 2px 6px;border-top:1px solid var(--border);margin-top:8px}
+#panier-total strong{font-size:20px;color:var(--gold)}
+.panier-pay-title{font-family:sans-serif;font-size:11px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;margin:10px 0 8px}
+#panier-pay-btns{display:flex;gap:8px;margin-bottom:12px}
+.pay-opt{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);padding:13px;font-family:sans-serif;font-size:14px}
+.pay-opt.selected{background:rgba(200,169,110,.15);border-color:var(--gold);color:var(--gold);font-weight:700}
+#btn-encaisser{display:block;width:100%;background:var(--gold);border:none;border-radius:12px;color:#0a0a0a;
+  font-family:sans-serif;font-size:15px;font-weight:700;padding:15px;margin-bottom:8px}
+#btn-encaisser:disabled{opacity:.4}
+#btn-vider-panier{display:block;width:100%;background:none;border:none;color:var(--muted);
+  font-family:sans-serif;font-size:12px;padding:6px}
+.cut-rename{display:inline-block;font-family:sans-serif;font-size:11px;color:#8cb6ff;
+  background:rgba(140,182,255,.08);border:1px solid var(--border);border-radius:8px;padding:5px 10px;margin:0 0 8px}
 #vente-match{padding:8px 4px}
 #vente-match-card{background:var(--surface);border:1px solid var(--gold);border-radius:14px;padding:18px;margin-bottom:14px}
 .vm-coupe{font-size:20px;color:var(--gold);margin-bottom:4px}
@@ -877,32 +910,35 @@ button,label[for],[role=button]{cursor:pointer}
 
     <!-- ══ VENTE ══ -->
     <div id="panel-vente" class="panel">
-      <!-- Étape 1 : scanner pour vendre -->
       <div id="vente-idle">
-        <div class="verif-intro">
-          <div class="verif-intro-icon">🏷️</div>
-          <div class="verif-intro-title">Vendre un morceau</div>
-          <div class="verif-intro-text">Scanne l'étiquette du paquet vendu — il sortira du stock, avec la date et la bête enregistrées.</div>
+        <button id="btn-vente-scan">📷 Scanner un article</button>
+
+        <!-- Analyse en cours -->
+        <div id="vente-analyzing" style="display:none">
+          <div id="vente-analyze-status">
+            <div class="wave-dots"><div class="wave-dot"></div><div class="wave-dot"></div><div class="wave-dot"></div></div>
+            <span>Lecture de l'étiquette…</span>
+          </div>
         </div>
-        <button id="btn-vente-scan">📷 Scanner pour vendre</button>
+
+        <!-- Panier -->
+        <div id="vente-panier" style="display:none">
+          <div class="panier-head"><span id="panier-count">0</span> article(s) dans le panier</div>
+          <div id="panier-list"></div>
+          <div id="panier-total"><span>Total</span><strong id="panier-total-val">0 $</strong></div>
+          <div class="panier-pay-title">Mode de paiement</div>
+          <div id="panier-pay-btns">
+            <button class="pay-opt" data-pay="interac">💳 Interac</button>
+            <button class="pay-opt" data-pay="comptant">💵 Comptant</button>
+          </div>
+          <button id="btn-encaisser" disabled>✓ Encaisser</button>
+          <button id="btn-vider-panier">Vider le panier</button>
+        </div>
+
+        <!-- Dernières ventes -->
         <div id="vente-recent">
           <div class="troupeau-section-title">Dernières ventes</div>
           <div id="vente-recent-list"></div>
-        </div>
-      </div>
-      <!-- Étape 2 : analyse -->
-      <div id="vente-analyzing" style="display:none">
-        <div id="vente-analyze-status">
-          <div class="wave-dots"><div class="wave-dot"></div><div class="wave-dot"></div><div class="wave-dot"></div></div>
-          <span>Lecture de l'étiquette…</span>
-        </div>
-      </div>
-      <!-- Étape 3 : confirmation du sac trouvé -->
-      <div id="vente-match" style="display:none">
-        <div id="vente-match-card"></div>
-        <div id="vente-match-actions">
-          <button id="btn-vente-confirm">✓ Confirmer la vente</button>
-          <button id="btn-vente-cancel">Annuler</button>
         </div>
       </div>
     </div>
@@ -1848,6 +1884,7 @@ async function rafraichirPrixMarche() {
 
 function renderLocalStock(items) {
   const body = $('stock-body');
+  S.stockItems = items;   // gardé pour le renommage de coupe en lot
   if (!items.length) {
     body.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Aucun sac disponible — scanner pour commencer</div>';
     return;
@@ -1948,6 +1985,7 @@ function renderLocalStock(items) {
       </button>
       <div class="stock-cut-items" style="display:none">
         ${marcheLigne}
+        <button class="cut-rename" onclick="renommerCoupeUI('${key.replace(/'/g, '’')}', '${cId}')">✎ Renommer toute la coupe « ${coupe} »</button>
         ${itemsHtml}
       </div>
     </div>`;
@@ -1987,6 +2025,26 @@ async function renommerSacUI(id, coupeActuelle) {
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
     toast('✓ Coupe corrigée — recatégorisée');
+    loadAndRenderStock();
+  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
+}
+
+// Renommer TOUTE une coupe d'un coup (tous les morceaux de cette catégorie)
+async function renommerCoupeUI(key, ancienNom) {
+  const ids = (S.stockItems || []).filter(i => coupeKey(i.coupe) === key).map(i => i.id);
+  if (!ids.length) return;
+  const nouveau = prompt(`Renommer les ${ids.length} morceaux de « ${ancienNom} » en :`, ancienNom);
+  if (nouveau == null) return;
+  const v = nouveau.trim();
+  if (!v || v === ancienNom) return;
+  try {
+    const r = await fetch('/api/inventaire/reclasser-lot', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, coupe: v }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    toast(`✓ ${d.renommes} morceaux renommés en « ${v} »`, 3200);
     loadAndRenderStock();
   } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
 }
@@ -2683,9 +2741,7 @@ function ouvrirCamera(handler) {
 //  VENTE — scanner un morceau pour le vendre
 // ══════════════════════════════════════════════════════
 function showVenteView(name) {
-  $('vente-idle').style.display      = name === 'idle'      ? '' : 'none';
   $('vente-analyzing').style.display = name === 'analyzing' ? '' : 'none';
-  $('vente-match').style.display     = name === 'match'     ? '' : 'none';
 }
 
 async function loadVentesRecentes() {
@@ -2695,11 +2751,12 @@ async function loadVentesRecentes() {
     const ventes = d.ventes || [];
     const list = $('vente-recent-list');
     if (!ventes.length) { list.innerHTML = '<div class="empty-state" style="padding:18px"><div>—</div>Aucune vente pour l\'instant</div>'; return; }
+    const payIcon = m => m === 'interac' ? '💳 Interac' : m === 'comptant' ? '💵 Comptant' : '';
     list.innerHTML = ventes.map(v => `
       <div class="vente-row">
         <div>
           <div class="vente-row-info">${v.coupe || '(?)'}${v.poids_kg ? ' · ' + v.poids_kg.toFixed(3) + ' kg' : ''}</div>
-          <div class="vente-row-sub">${(v.date_vente || '').slice(0,16)}${v.numero_bete ? ' · bête #' + v.numero_bete : ''}</div>
+          <div class="vente-row-sub">${(v.date_vente || '').slice(0,16)}${v.mode_paiement ? ' · ' + payIcon(v.mode_paiement) : ''}${v.numero_bete != null ? ' · bête #' + v.numero_bete : ''}</div>
         </div>
         <div class="vente-row-prix">${v.prix_vendu != null ? v.prix_vendu.toFixed(2) + ' $' : ''}</div>
         <button class="vente-del" onclick="annulerVenteUI(${v.id}, '${(v.coupe || '').replace(/'/g, '’')}')" aria-label="Annuler cette vente">✕</button>
@@ -2718,71 +2775,92 @@ async function annulerVenteUI(id, coupe) {
   } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
 }
 
+// ── Panier de vente (scanner plusieurs articles → paiement → encaisser) ──
 async function scannerVente(file) {
   showVenteView('analyzing');
   try {
     const dataUrl = await fileToDataUrl(file);
     const base64  = await compresserImage(dataUrl.split(',')[1]);
     const result  = await analyzeLabel(base64, 'image/jpeg');
-    if (!result || result.etiquette === false) {
-      showVenteView('idle');
-      toast('Étiquette illisible — reprends la photo', 3200);
-      return;
-    }
-    // Cherche le sac correspondant dans le stock
+    if (!result || result.etiquette === false) { showVenteView('idle'); toast('Étiquette illisible — reprends la photo', 3200); return; }
     const r = await fetch('/api/vente/chercher', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ coupe: result.coupe, poids_kg: result.poids_kg }),
     });
     const d = await r.json();
-    renderVenteMatch(d.sac, result);
-  } catch (e) {
     showVenteView('idle');
-    toast('Erreur : ' + e.message.slice(0, 60), 3200);
-  }
+    if (!d.sac) { toast(`⚠ « ${result.coupe || '?'} » pas dans le stock (déjà vendu ?)`, 3600); return; }
+    ajouterAuPanier(d.sac);
+  } catch (e) { showVenteView('idle'); toast('Erreur : ' + e.message.slice(0, 60), 3200); }
 }
 
-function renderVenteMatch(sac, scan) {
-  if (!sac) {
-    S.venteMatch = null;
-    $('vente-match-card').innerHTML = `<div class="vm-warn">⚠ « ${scan.coupe || '?'} » n'est pas dans le stock disponible.<br>Déjà vendu, ou jamais scanné ?</div>`;
-    $('btn-vente-confirm').style.display = 'none';
-    $('btn-vente-cancel').textContent = 'Retour';
-    showVenteView('match');
-    return;
-  }
-  S.venteMatch = sac;
-  const bete = (S.troupeau || []).find(b => b.numero_bete === sac.numero_bete);
-  $('vente-match-card').innerHTML = `
-    <div class="vm-coupe">${sac.coupe}</div>
-    <div class="vm-row"><span>Poids</span><strong>${(sac.poids_kg||0).toFixed(3)} kg</strong></div>
-    <div class="vm-row"><span>Prix</span><strong>${(sac.prix_total||0).toFixed(2)} $</strong> <span>(${(sac.prix_kg||0).toFixed(2)} $/kg)</span></div>
-    <div class="vm-row"><span>Scanné le</span><strong>${(sac.date_scan||'').slice(0,10)}</strong></div>
-    <div class="vm-row"><span>Bête</span><strong>${sac.numero_bete ? '#' + sac.numero_bete + (bete && bete.tag_atq ? ' · ' + bete.tag_atq : '') : '— non assignée —'}</strong></div>`;
-  $('btn-vente-confirm').style.display = '';
-  $('btn-vente-confirm').textContent = '✓ Confirmer la vente';
-  $('btn-vente-cancel').textContent = 'Annuler';
-  showVenteView('match');
+function ajouterAuPanier(sac) {
+  S.panier = S.panier || [];
+  if (S.panier.some(s => s.id === sac.id)) { toast('Ce morceau est déjà dans le panier', 2600); return; }
+  S.panier.push(sac);
+  toast(`✓ ${sac.coupe} ajouté au panier`, 2000);
+  renderPanier();
 }
 
-async function confirmerVente() {
-  const sac = S.venteMatch;
-  if (!sac) return;
-  $('btn-vente-confirm').disabled = true;
-  showLoader('Enregistrement de la vente…');
+function retirerDuPanier(id) {
+  S.panier = (S.panier || []).filter(s => s.id !== id);
+  renderPanier();
+}
+
+function viderPanier() {
+  if (!(S.panier || []).length) return;
+  if (!confirm('Vider le panier ?')) return;
+  S.panier = []; renderPanier();
+}
+
+function selectPaiement(mode) {
+  S.modePaiement = mode;
+  document.querySelectorAll('.pay-opt').forEach(b => b.classList.toggle('selected', b.dataset.pay === mode));
+  $('btn-encaisser').disabled = !(S.panier || []).length;
+}
+
+function renderPanier() {
+  const p = S.panier || [];
+  const box = $('vente-panier');
+  if (!box) return;
+  if (!p.length) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  $('panier-count').textContent = p.length;
+  const total = p.reduce((s, x) => s + (x.prix_total || 0), 0);
+  $('panier-total-val').textContent = total.toFixed(2) + ' $';
+  $('panier-list').innerHTML = p.map(s => `
+    <div class="panier-item">
+      <div class="panier-item-info">
+        <div class="panier-item-coupe">${s.coupe}</div>
+        <div class="panier-item-sub">${(s.poids_kg||0).toFixed(3)} kg${s.numero_bete != null ? ' · bête #' + s.numero_bete : ''}</div>
+      </div>
+      <div class="panier-item-prix">${(s.prix_total||0).toFixed(2)} $</div>
+      <button class="panier-item-del" onclick="retirerDuPanier(${s.id})" aria-label="Retirer du panier">✕</button>
+    </div>`).join('');
+  $('btn-encaisser').disabled = !S.modePaiement;
+  $('btn-encaisser').textContent = `✓ Encaisser (${p.length} · ${total.toFixed(2)} $)`;
+}
+
+async function encaisser() {
+  const p = S.panier || [];
+  if (!p.length) return;
+  if (!S.modePaiement) { toast('Choisis le mode de paiement (Interac / comptant)', 2800); return; }
+  $('btn-encaisser').disabled = true;
+  showLoader(`Encaissement de ${p.length} article(s)…`);
   try {
-    const r = await fetch('/api/ventes', {
+    const r = await fetch('/api/vente/encaisser', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inventaire_id: sac.id, prix_vendu: sac.prix_total }),
+      body: JSON.stringify({ inventaire_ids: p.map(s => s.id), mode_paiement: S.modePaiement }),
     });
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
-    toast(`✓ Vendu : ${sac.coupe}${sac.numero_bete ? ' (bête #' + sac.numero_bete + ')' : ''}`, 3500);
-    S.venteMatch = null;
-    showVenteView('idle');
+    toast(`✓ ${d.vendus} article(s) vendus · ${S.modePaiement}`, 3500);
+    S.panier = []; S.modePaiement = null;
+    document.querySelectorAll('.pay-opt').forEach(b => b.classList.remove('selected'));
+    renderPanier();
     loadVentesRecentes();
-  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
-  finally { hideLoader(); $('btn-vente-confirm').disabled = false; }
+  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3500); }
+  finally { hideLoader(); }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2800,7 +2878,7 @@ function switchTab(tab) {
   if (tab === 'stock')    loadAndRenderStock();
   if (tab === 'troupeau') loadTroupeau();
   if (tab === 'verif')    renderVerif();
-  if (tab === 'vente')  { showVenteView('idle'); loadVentesRecentes(); }
+  if (tab === 'vente')  { showVenteView('idle'); renderPanier(); loadVentesRecentes(); }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2902,8 +2980,9 @@ $('photo-viewer').addEventListener('click', e => { if (e.target.id === 'photo-vi
 
 // Vente
 $('btn-vente-scan').addEventListener('click', () => ouvrirCamera(scannerVente));
-$('btn-vente-confirm').addEventListener('click', confirmerVente);
-$('btn-vente-cancel').addEventListener('click', () => { S.venteMatch = null; showVenteView('idle'); });
+$('btn-encaisser').addEventListener('click', encaisser);
+$('btn-vider-panier').addEventListener('click', viderPanier);
+document.querySelectorAll('.pay-opt').forEach(b => b.addEventListener('click', () => selectPaiement(b.dataset.pay)));
 
 // Bouton retake (dans le form, au-dessus des champs)
 $('btn-retake').addEventListener('click', recommencerPhoto);

@@ -126,6 +126,18 @@ app.post('/api/inventaire/:id/reclasser', (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Renommer une coupe au complet (plusieurs sacs d'un coup)
+app.post('/api/inventaire/reclasser-lot', (req, res) => {
+  try {
+    const { ids, coupe } = req.body;
+    if (!Array.isArray(ids) || !ids.length || !coupe) {
+      return res.status(400).json({ ok: false, error: 'ids et coupe requis' });
+    }
+    const r = db.reclasserLot(ids.map(Number), coupe);
+    res.json({ ok: true, renommes: r.changes });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // Revoir la photo d'un sac scanné
 app.get('/api/inventaire/:id/photo', (req, res) => {
   try {
@@ -456,6 +468,18 @@ app.post('/api/ventes', (req, res) => {
 app.get('/api/ventes', (req, res) => {
   try { res.json({ ok: true, ventes: db.getVentes() }); }
   catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Encaisser un panier (plusieurs morceaux + mode de paiement)
+app.post('/api/vente/encaisser', (req, res) => {
+  try {
+    const { inventaire_ids, mode_paiement } = req.body;
+    if (!Array.isArray(inventaire_ids) || !inventaire_ids.length) {
+      return res.status(400).json({ ok: false, error: 'panier vide' });
+    }
+    const r = db.encaisserPanier(inventaire_ids.map(Number), mode_paiement || null);
+    res.json({ ok: true, ...r });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 // Annuler une vente → remet le morceau en stock

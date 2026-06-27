@@ -96,6 +96,9 @@ db.exec(`UPDATE betes SET statut = 'pâturage' WHERE statut = 'en cours' OR stat
 // Migration : colonne photo sur inventaire (nom de fichier de la photo de scan)
 try { db.exec(`ALTER TABLE inventaire ADD COLUMN photo TEXT`); } catch (_) { /* existe déjà */ }
 
+// Migration : mode de paiement sur les ventes (Interac / comptant)
+try { db.exec(`ALTER TABLE ventes ADD COLUMN mode_paiement TEXT`); } catch (_) { /* existe déjà */ }
+
 // Prix suggérés du marché (rafraîchis à la demande via recherche web)
 db.exec(`
   CREATE TABLE IF NOT EXISTS prix_suggere (
@@ -455,12 +458,35 @@ function getBetes() {
 // ─── VENTES ──────────────────────────────────────────────────────────────────
 function enregistrerVente(data) {
   const vente = db.prepare(`
-    INSERT INTO ventes (inventaire_id, shopify_order_id, prix_vendu)
-    VALUES (?, ?, ?)
-  `).run(data.inventaire_id, data.shopify_order_id || null, data.prix_vendu || null);
+    INSERT INTO ventes (inventaire_id, shopify_order_id, prix_vendu, mode_paiement)
+    VALUES (?, ?, ?, ?)
+  `).run(data.inventaire_id, data.shopify_order_id || null, data.prix_vendu || null, data.mode_paiement || null);
   // Marquer le sac comme vendu
   updateStatut(data.inventaire_id, 'vendu');
   return vente.lastInsertRowid;
+}
+
+// Encaisser un panier : plusieurs morceaux d'un coup, même mode de paiement
+function encaisserPanier(inventaire_ids, mode_paiement) {
+  let n = 0;
+  db.transaction(() => {
+    for (const id of inventaire_ids) {
+      const sac = db.prepare(`SELECT prix_total FROM inventaire WHERE id = ? AND statut = 'disponible'`).get(id);
+      if (!sac) continue;
+      enregistrerVente({ inventaire_id: id, prix_vendu: sac.prix_total, mode_paiement });
+      n++;
+    }
+  })();
+  return { vendus: n };
+}
+
+// Renommer une coupe en lot (corrige toute une catégorie de coupe d'un coup)
+function reclasserLot(ids, coupe) {
+  if (!Array.isArray(ids) || !ids.length || !coupe) return { changes: 0 };
+  const stmt = db.prepare('UPDATE inventaire SET coupe = ? WHERE id = ?');
+  let n = 0;
+  db.transaction(() => { for (const id of ids) n += stmt.run(coupe, id).changes; })();
+  return { changes: n };
 }
 
 // Trouve le sac DISPONIBLE qui correspond le mieux à une étiquette scannée
@@ -492,7 +518,7 @@ function annulerVente(id) {
 // Historique des ventes (avec coupe + bête depuis l'inventaire)
 function getVentes(limit = 50) {
   return db.prepare(`
-    SELECT v.id, v.prix_vendu, v.date_vente,
+    SELECT v.id, v.prix_vendu, v.date_vente, v.mode_paiement,
            i.coupe, i.poids_kg, i.numero_bete, i.id AS inventaire_id
     FROM ventes v
     LEFT JOIN inventaire i ON i.id = v.inventaire_id
@@ -577,6 +603,8 @@ module.exports = {
   getSac,
   supprimerSac,
   updateCoupe,
+  reclasserLot,
+  encaisserPanier,
   setSacPhoto,
   getPhotoPath,
   rattacherOrphelins,
