@@ -2309,6 +2309,11 @@ function renderTroupeau() {
   html += renderTroupeauSection('Au frigo — prêt à manger', '❄️', frigo);
   html += renderTroupeauSection('Vendus', '📦', vendus);
   body.innerHTML = html;
+
+  // Ouvrir automatiquement les sous-sections au chargement
+  setTimeout(() => {
+    document.querySelectorAll('.troupeau-subsection').forEach(sec => sec.classList.remove('collapsed'));
+  }, 0);
 }
 
 async function loadTroupeau() {
