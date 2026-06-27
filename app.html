@@ -502,6 +502,14 @@ button,label[for],[role=button]{cursor:pointer}
 .troupeau-section.collapsed .troupeau-chevron{transform:rotate(-90deg)}
 .troupeau-section.collapsed .troupeau-betes{display:none}
 .troupeau-betes{transition:max-height 150ms}
+/* Sous-sections (type d'animal) */
+.troupeau-subsection{margin:0 0 6px 8px;border-left:2px solid var(--border);padding-left:8px}
+.troupeau-subsection-title{font-family:sans-serif;font-size:10px;font-weight:600;
+  text-transform:uppercase;color:var(--muted);margin:10px 0 6px;display:flex;align-items:center;
+  gap:6px;cursor:pointer;user-select:none;opacity:.85}
+.troupeau-subsection-title:active{opacity:.6}
+.troupeau-subsection.collapsed .troupeau-chevron{transform:rotate(-90deg)}
+.troupeau-subsection.collapsed .troupeau-betes{display:none}
 
 /* ── TROUPEAU HEADER + RECHERCHE ── */
 #troupeau-header-btns{display:flex;gap:8px}
@@ -2206,12 +2214,47 @@ async function supprimerBeteUI(numero, nom, nbMorceaux) {
 }
 
 function toggleTroupeauSection(e) {
-  e.target.closest('.troupeau-section').classList.toggle('collapsed');
+  // Trouver la section/sous-section parent la plus proche
+  const section = e.target.closest('.troupeau-subsection') || e.target.closest('.troupeau-section');
+  if (section) section.classList.toggle('collapsed');
+}
+
+function renderTroupeauSubSection(type, betes) {
+  if (!betes.length) return '';
+  const emojiType = { 'vache': '🐄', 'bœuf': '🐂', 'veau': '🐃' }[type] || '🐑';
+  const labelType = { 'vache': 'Vaches', 'bœuf': 'Bœufs', 'veau': 'Veaux' }[type] || type;
+  const html = betes.map(renderBeteCard).join('');
+  return `<div class="troupeau-subsection">
+    <div class="troupeau-subsection-title" onclick="toggleTroupeauSection(event)">
+      <span class="troupeau-chevron">▸</span>
+      <span>${emojiType} ${labelType} (${betes.length})</span>
+    </div>
+    <div class="troupeau-betes">${html}</div>
+  </div>`;
 }
 
 function renderTroupeauSection(titre, emoji, betes) {
   if (!betes.length) return '';
-  const html = betes.map(renderBeteCard).join('');
+
+  // Grouper par type si c'est le pâturage/abattoir (vivants)
+  const vivants = betes.some(b => b.statut === 'pâturage' || b.statut === 'abattoir');
+  let html = '';
+
+  if (vivants) {
+    // Subdiviser par type
+    const parType = { 'vache': [], 'bœuf': [], 'veau': [] };
+    betes.forEach(b => {
+      const t = b.type === 'vache' ? 'vache' : (b.type === 'bœuf' ? 'bœuf' : 'veau');
+      parType[t].push(b);
+    });
+    html = renderTroupeauSubSection('vache', parType['vache']) +
+           renderTroupeauSubSection('bœuf', parType['bœuf']) +
+           renderTroupeauSubSection('veau', parType['veau']);
+  } else {
+    // Pas de subdivision pour frigo/vendus
+    html = betes.map(renderBeteCard).join('');
+  }
+
   return `<div class="troupeau-section">
     <div class="troupeau-section-title" onclick="toggleTroupeauSection(event)">
       <span class="troupeau-chevron">▸</span>
