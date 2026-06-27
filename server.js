@@ -391,13 +391,18 @@ app.post('/api/prix-marche/rafraichir', async (req, res) => {
     const noms = Object.values(byKey);
     if (!noms.length) return res.json({ ok: true, prix: [], date_maj: null });
 
-    const prompt = `Recherche les prix de détail actuels (dollars canadiens par kg) du bœuf Wagyu / bœuf premium au Québec / Canada en ${new Date().getFullYear()}.
+    const prompt = `Recherche les prix de détail actuels (dollars canadiens par kg) du **bœuf WAGYU** vendu au détail au **Canada** en ${new Date().getFullYear()}.
 
-Pour CHACUNE de ces coupes, donne une estimation de prix de détail CAD/kg (Wagyu/premium) :
+IMPORTANT — CONTEXTE DE PRIX :
+- UNIQUEMENT du bœuf **Wagyu** (Wagyu pur, fullblood, ou F1/croisé Wagyu). PAS de l'Angus, PAS du bœuf commercial ordinaire, PAS d'autres races.
+- Marché **canadien** (Québec/Canada), prix de DÉTAIL au consommateur, en CAD/kg.
+- Le Wagyu se vend BEAUCOUP plus cher que le bœuf ordinaire (souvent 3 à 6× le prix de l'Angus). Tes prix doivent refléter du vrai Wagyu premium canadien.
+
+Pour CHACUNE de ces coupes, donne une estimation de prix de détail Wagyu CAD/kg :
 ${noms.join(', ')}
 
-RÈGLES IMPORTANTES :
-- Donne TOUJOURS un nombre pour chaque coupe (jamais null) — base-toi sur les prix Wagyu/premium courants et le positionnement habituel de la coupe (filet/tomahawk = haut de gamme, haché/os = bas de gamme).
+RÈGLES :
+- Donne TOUJOURS un nombre pour chaque coupe (jamais null), basé sur les prix WAGYU courants au Canada et le positionnement de la coupe (filet/tomahawk = haut de gamme, haché/os = bas de gamme).
 - Un objet par coupe, en gardant le nom EXACT de la liste.
 
 Réponds UNIQUEMENT avec le tableau JSON, sans aucun texte autour :

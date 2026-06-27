@@ -384,7 +384,8 @@ function getTroupeau() {
       ROUND(SUM(i.poids_kg), 2)                                            AS poids_decoupe_kg,
       ROUND(SUM(i.prix_total), 2)                                          AS valeur_totale,
       SUM(CASE WHEN i.statut = 'disponible' THEN 1 ELSE 0 END)             AS nb_disponibles,
-      ROUND(SUM(CASE WHEN i.statut = 'vendu' THEN i.prix_total ELSE 0 END), 2) AS valeur_vendue
+      ROUND(SUM(CASE WHEN i.statut = 'vendu' THEN i.prix_total ELSE 0 END), 2) AS valeur_vendue,
+      MIN(i.date_scan)                                                     AS date_entree_frigo
     FROM betes b
     LEFT JOIN inventaire i ON i.numero_bete = b.numero_bete
     GROUP BY b.id

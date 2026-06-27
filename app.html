@@ -1080,6 +1080,13 @@ button,label[for],[role=button]{cursor:pointer}
           <option value="veau">Veau</option>
           <option value="vache">Vache</option>
         </select></div>
+      <div class="field" id="b-statut-field" style="display:none"><label>État</label>
+        <select id="b-statut">
+          <option value="pâturage">🌿 En pâturage</option>
+          <option value="abattoir">🚚 Envoyé à l'abattage</option>
+          <option value="frigo">❄️ Au frigo</option>
+          <option value="vendu">Vendu</option>
+        </select></div>
     </div>
     <div class="card-group">
       <div class="card-group-title">Élevage</div>
@@ -1843,12 +1850,13 @@ function renderLocalStock(items) {
     return;
   }
 
-  // Ordre des bœufs : le plus ancien en inventaire d'abord (par date d'abattage/entrée frigo)
+  // Ordre des bœufs : celui ENTRÉ AU FRIGO en premier doit être vendu en premier (FIFO).
+  // On utilise la date du 1er scan (entrée réelle en inventaire), pas la date d'abattage.
+  const dateEntree = b => (b.date_entree_frigo || b.date_livraison || b.date_abattage || '9999').slice(0, 10);
   const ordreBete = {};
   (S.troupeau || []).slice()
-    .sort((a, b) => (a.date_abattage || a.date_livraison || '9999').localeCompare(b.date_abattage || b.date_livraison || '9999')
-                 || (a.numero_bete - b.numero_bete))
-    .forEach((b, i) => { ordreBete[b.numero_bete] = { ordre: i + 1, date: b.date_abattage || b.date_livraison, nom: b.nom }; });
+    .sort((a, b) => dateEntree(a).localeCompare(dateEntree(b)) || (a.numero_bete - b.numero_bete))
+    .forEach((b, i) => { ordreBete[b.numero_bete] = { ordre: i + 1, date: dateEntree(b), nom: b.nom }; });
   const beteOrdre = n => (n != null && ordreBete[n]) ? ordreBete[n].ordre : 999;
 
   // Grouper par coupe NORMALISÉE (fusionne les doublons : majuscules, accents, "de boeuf wagyu"…)
@@ -1867,7 +1875,7 @@ function renderLocalStock(items) {
     <div style="font-family:sans-serif;font-size:12px;color:var(--muted)">${items.length} sac${items.length>1?'s':''} disponibles</div>
     <div style="font-size:16px;color:var(--gold)">${totalVal.toFixed(2)} $</div>
   </div>`
-  + (S.prixMaj ? `<div id="prix-marche-maj">💡 Prix marché mis à jour : ${(S.prixMaj || '').slice(0,16)}</div>` : '');
+  + (S.prixMaj ? `<div id="prix-marche-maj">💡 Prix marché Wagyu (Canada) · ${(S.prixMaj || '').slice(0,16)}</div>` : '');
 
   // Trier les groupes par nom affiché
   const sections = Object.keys(grouped).sort((a, b) => nomCoupeAffiche(grouped[a]).localeCompare(nomCoupeAffiche(grouped[b])));
@@ -1885,7 +1893,7 @@ function renderLocalStock(items) {
       const ecart = monPrixKg ? Math.round((monPrixKg - suggere) / suggere * 100) : null;
       const ecartTxt = ecart == null ? '' :
         ` · ton prix ${monPrixKg.toFixed(0)} $/kg <span class="${ecart >= 0 ? 'ecart-haut' : 'ecart-bas'}">(${ecart >= 0 ? '+' : ''}${ecart}%)</span>`;
-      marcheLigne = `<div class="cut-marche">💡 Marché suggéré : <strong>~${suggere.toFixed(0)} $/kg</strong>${ecartTxt}</div>`;
+      marcheLigne = `<div class="cut-marche">💡 Marché Wagyu : <strong>~${suggere.toFixed(0)} $/kg</strong>${ecartTxt}</div>`;
     }
     // Combien de bœufs différents dans cette coupe ?
     const betesCut = [...new Set(g.map(i => i.numero_bete))];
@@ -1904,6 +1912,7 @@ function renderLocalStock(items) {
           <div style="font-size:10px;color:var(--muted);font-family:sans-serif">${item.prix_kg.toFixed(2)} $/kg</div>
         </div>
         ${item.photo ? `<button class="stock-photo" onclick="ouvrirPhoto(${item.id})" aria-label="Revoir la photo">📷</button>` : ''}
+        <button class="stock-photo" onclick="renommerSacUI(${item.id}, '${(item.coupe || '').replace(/'/g, '’')}')" aria-label="Corriger la coupe">✎</button>
         <button class="stock-del" onclick="deleteStockItem(${item.id}, '${cId}')" aria-label="Retirer ce sac">✕</button>
       </div>`;
 
@@ -1957,6 +1966,24 @@ async function deleteStockItem(id, coupe) {
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
     toast('✓ Sac retiré');
+    loadAndRenderStock();
+  } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
+}
+
+// Corriger le nom de coupe d'un morceau mal scanné → recatégorisé automatiquement
+async function renommerSacUI(id, coupeActuelle) {
+  const nouveau = prompt('Nom de coupe correct pour ce morceau :', coupeActuelle);
+  if (nouveau == null) return;
+  const v = nouveau.trim();
+  if (!v || v === coupeActuelle) return;
+  try {
+    const r = await fetch(`/api/inventaire/${id}/reclasser`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coupe: v }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    toast('✓ Coupe corrigée — recatégorisée');
     loadAndRenderStock();
   } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
 }
@@ -2083,6 +2110,7 @@ function renderBeteCard(b) {
       </div>
       <div class="bete-card-right">
         <span class="bete-statut ${statutClass}">${b.statut}</span>
+        <button class="bete-del" onclick="ouvrirEditBete(${b.numero_bete})" aria-label="Modifier ce bœuf">✎</button>
         <button class="bete-del" onclick="supprimerBeteUI(${b.numero_bete}, '${(b.nom || 'Bête #' + b.numero_bete).replace(/'/g, '’')}', ${b.nb_morceaux || 0})" aria-label="Retirer ce bœuf">✕</button>
       </div>
     </div>
@@ -2259,13 +2287,37 @@ async function demarrerBeteScan() {
 // Modal ajout bête
 function ouvrirModalBete() {
   const nums = (S.troupeau || []).map(b => b.numero_bete);
+  $('modal-bete-title').textContent = 'Ajouter une bête';
   $('b-numero').value = nums.length ? Math.max(...nums) + 1 : 1;
+  $('b-numero').disabled = false;
+  $('b-statut-field').style.display = 'none';
+  ['b-tag','b-nom','b-naissance','b-poids','b-notes'].forEach(id => $(id).value = '');
+  $('b-type').value = 'bœuf'; $('b-race').value = 'Wagyu';
+  $('modal-bete').classList.add('show');
+}
+
+// Modifier une bête existante (nom, tag, état, etc.)
+function ouvrirEditBete(numero) {
+  const b = (S.troupeau || []).find(x => x.numero_bete === numero);
+  if (!b) return;
+  $('modal-bete-title').textContent = 'Modifier la bête #' + numero;
+  $('b-numero').value = b.numero_bete; $('b-numero').disabled = true;
+  $('b-tag').value      = b.tag_atq || '';
+  $('b-nom').value      = b.nom || '';
+  $('b-type').value     = ['bœuf','veau','vache'].includes(b.type) ? b.type : 'bœuf';
+  $('b-naissance').value = b.date_naissance || '';
+  $('b-poids').value    = b.poids_vif_kg || '';
+  $('b-race').value     = b.race || 'Wagyu';
+  $('b-notes').value    = b.notes || '';
+  $('b-statut').value   = b.statut || 'pâturage';
+  $('b-statut-field').style.display = '';
   $('modal-bete').classList.add('show');
 }
 
 async function sauverBete() {
   const numero = parseInt($('b-numero').value);
-  if (!numero) { toast('Numéro de bête requis', 2600); return; }
+  if (!numero && numero !== 0) { toast('Numéro de bête requis', 2600); return; }
+  const enEdit = $('b-numero').disabled;
   const payload = {
     numero_bete:    numero,
     tag_atq:        $('b-tag').value.trim()   || null,
@@ -2275,7 +2327,7 @@ async function sauverBete() {
     poids_vif_kg:   parseFloat($('b-poids').value) || null,
     race:           $('b-race').value.trim()  || 'Wagyu',
     notes:          $('b-notes').value.trim() || null,
-    statut:         'pâturage',
+    statut:         enEdit ? $('b-statut').value : 'pâturage',
   };
   try {
     const r = await fetch('/api/troupeau', {
@@ -2286,8 +2338,8 @@ async function sauverBete() {
     const d = await r.json();
     if (!d.ok) throw new Error(d.error);
     $('modal-bete').classList.remove('show');
-    ['b-tag','b-nom','b-naissance','b-poids','b-notes'].forEach(id => $(id).value = '');
-    toast(`✓ Bête #${numero} ajoutée au troupeau`);
+    $('b-numero').disabled = false;
+    toast(enEdit ? `✓ Bête #${numero} modifiée` : `✓ Bête #${numero} ajoutée au troupeau`);
     loadTroupeau();
   } catch (e) { toast('Erreur : ' + e.message, 3200); }
 }
