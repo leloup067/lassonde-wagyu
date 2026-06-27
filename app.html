@@ -492,9 +492,16 @@ button,label[for],[role=button]{cursor:pointer}
 .bete-actions button{flex:1;background:transparent;border:1px solid var(--border);color:var(--text);
   border-radius:8px;padding:8px;font-family:sans-serif;font-size:12px}
 .bete-actions button.primary{border-color:var(--gold);color:var(--gold)}
+.troupeau-section{margin:0 0 14px}
+.troupeau-section:first-child .troupeau-section-title{margin-top:0}
 .troupeau-section-title{font-family:sans-serif;font-size:11px;font-weight:700;letter-spacing:1.2px;
-  text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
-.troupeau-section-title:first-child{margin-top:0}
+  text-transform:uppercase;color:var(--muted);margin:18px 0 10px;display:flex;align-items:center;
+  gap:10px;cursor:pointer;user-select:none}
+.troupeau-section-title:active{opacity:.7}
+.troupeau-chevron{display:inline-block;width:14px;height:14px;transition:transform 100ms;font-size:10px;line-height:1}
+.troupeau-section.collapsed .troupeau-chevron{transform:rotate(-90deg)}
+.troupeau-section.collapsed .troupeau-betes{display:none}
+.troupeau-betes{transition:max-height 150ms}
 
 /* ── TROUPEAU HEADER + RECHERCHE ── */
 #troupeau-header-btns{display:flex;gap:8px}
@@ -2164,10 +2171,12 @@ function renderBeteCard(b) {
     </div>`;
   }
 
+  const id_principal = b.tag_atq ? `Tag ATQ ${b.tag_atq}` : `Bête #${b.numero_bete}`;
+  const id_secondaire = b.tag_atq ? `#${b.numero_bete}` : '';
   return `<div class="bete-card">
     <div class="bete-card-top">
-      <div class="bete-id">${b.nom ? b.nom + ' · ' : ''}Bête #${b.numero_bete}
-        <small>${b.tag_atq || 'tag ATQ non renseigné'}</small>
+      <div class="bete-id">${b.nom ? b.nom + ' · ' : ''}${id_principal}
+        ${id_secondaire ? `<small>${id_secondaire}</small>` : ''}
       </div>
       <div class="bete-card-right">
         <span class="bete-statut ${statutClass}">${b.statut}</span>
@@ -2194,6 +2203,22 @@ async function supprimerBeteUI(numero, nom, nbMorceaux) {
     if (S.beteActive === numero) { S.beteActive = null; updateBeteActiveBanner(); }
     loadTroupeau();
   } catch (e) { toast('Erreur : ' + e.message.slice(0, 60), 3200); }
+}
+
+function toggleTroupeauSection(e) {
+  e.target.closest('.troupeau-section').classList.toggle('collapsed');
+}
+
+function renderTroupeauSection(titre, emoji, betes) {
+  if (!betes.length) return '';
+  const html = betes.map(renderBeteCard).join('');
+  return `<div class="troupeau-section">
+    <div class="troupeau-section-title" onclick="toggleTroupeauSection(event)">
+      <span class="troupeau-chevron">▸</span>
+      <span>${emoji} ${titre} (${betes.length})</span>
+    </div>
+    <div class="troupeau-betes">${html}</div>
+  </div>`;
 }
 
 function renderTroupeau() {
@@ -2223,9 +2248,9 @@ function renderTroupeau() {
   const vendus  = filtre.filter(b => b.statut === 'vendu');
 
   let html = '';
-  if (vivants.length) html += `<div class="troupeau-section-title">🌿 En pâturage (${vivants.length})</div>` + vivants.map(renderBeteCard).join('');
-  if (frigo.length)   html += `<div class="troupeau-section-title">❄️ Au frigo — prêt à manger (${frigo.length})</div>` + frigo.map(renderBeteCard).join('');
-  if (vendus.length)  html += `<div class="troupeau-section-title">Vendus (${vendus.length})</div>` + vendus.map(renderBeteCard).join('');
+  html += renderTroupeauSection('En pâturage', '🌿', vivants);
+  html += renderTroupeauSection('Au frigo — prêt à manger', '❄️', frigo);
+  html += renderTroupeauSection('Vendus', '📦', vendus);
   body.innerHTML = html;
 }
 
