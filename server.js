@@ -6,6 +6,39 @@ const path       = require('path');
 const https      = require('https');
 const Anthropic  = require('@anthropic-ai/sdk');
 const db         = require('./database');
+const Jimp       = require('jimp');
+const ZX         = require('@zxing/library');
+
+// ─── DÉCODAGE CODE-BARRES (UPC price-embedded) ───────────────────────────────
+// Format type 2 : "2 PPPPP C #### C" → PLU (5 chiffres) + prix intégré (4 chiffres).
+function parsePLU(code) {
+  if (!code) return null;
+  let c = String(code).replace(/\D/g, '');
+  if (c.length === 13 && c[0] === '0') c = c.slice(1);   // EAN-13 avec 0 → UPC-A 12
+  if (c.length !== 12 || c[0] !== '2') return null;       // type 2 = poids/prix variable
+  return { plu: c.slice(1, 6), prix: parseInt(c.slice(7, 11)) / 100, code: c };
+}
+
+async function decodeBarcode(base64) {
+  const origErr = console.error; console.error = () => {};   // ZXing spamme stderr sur chaque échec
+  try {
+    const img = await Jimp.read(Buffer.from(base64, 'base64'));
+    for (const scale of [1, 2, 1.5]) {
+      const im = scale === 1 ? img : img.clone().scale(scale);
+      const { data, width, height } = im.bitmap;
+      const lum = new Uint8ClampedArray(width * height);
+      for (let i = 0; i < width * height; i++)
+        lum[i] = (data[i*4]*0.299 + data[i*4+1]*0.587 + data[i*4+2]*0.114) | 0;
+      const bitmap = new ZX.BinaryBitmap(new ZX.HybridBinarizer(new ZX.RGBLuminanceSource(lum, width, height)));
+      const reader = new ZX.MultiFormatReader();
+      const hints = new Map();
+      hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.EAN_13]);
+      hints.set(ZX.DecodeHintType.TRY_HARDER, true);
+      try { const p = parsePLU(reader.decode(bitmap, hints).getText()); if (p) return p; } catch (_) {}
+    }
+  } catch (_) {} finally { console.error = origErr; }
+  return null;
+}
 
 const anthropic = new Anthropic({
   apiKey:         process.env.ANTHROPIC_API_KEY,
@@ -612,6 +645,23 @@ app.post('/api/scan', async (req, res) => {
   try {
     const { image, mimeType = 'image/jpeg' } = req.body;
     if (!image) return res.status(400).json({ ok: false, error: 'image base64 requise' });
+
+    // ─── 1) Code-barres d'abord (instantané, gratuit) ───
+    const bc = await decodeBarcode(image);
+    let pluInconnu = null;
+    if (bc) {
+      const p = db.getPlu(bc.plu);
+      if (p && p.prix_kg) {
+        const poids_kg = Math.round((bc.prix / p.prix_kg) * 1000) / 1000;
+        return res.json({ ok: true, result: {
+          etiquette: true, coupe: p.coupe, poids_kg, poids: poids_kg.toFixed(3) + ' kg',
+          prix_kg: p.prix_kg, total: bc.prix, meilleur_avant: null, source: 'barcode', plu: bc.plu,
+        }});
+      }
+      pluInconnu = bc;   // PLU pas encore dans la banque → on l'apprendra après la vision
+    }
+
+    // ─── 2) Sinon (pas de code-barres ou PLU inconnu) → vision ───
     if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ ok: false, error: 'Clé Anthropic manquante' });
 
     const VISION_PROMPT = `Tu analyses une étiquette de boucherie québécoise pour Les Élevages Lassonde.
@@ -665,8 +715,22 @@ Sinon, réponds UNIQUEMENT avec ce JSON (sans texte avant ni après) :
       request.end();
     });
 
+    // Apprentissage : si un code-barres avait un PLU inconnu, on le relie à la coupe lue par la vision
+    if (pluInconnu && result && result.coupe) {
+      try { db.upsertPlu(pluInconnu.plu, result.coupe, result.prix_kg || null); } catch (_) {}
+      result.plu = pluInconnu.plu; result.source = 'vision+plu-appris';
+    } else if (result) {
+      result.source = 'vision';
+    }
+
     res.json({ ok: true, result });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Banque PLU (consultation)
+app.get('/api/plu', (req, res) => {
+  try { res.json({ ok: true, plu: db.getAllPlu() }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 // ─── API AGENT (avec web search) ─────────────────────────────────────────────

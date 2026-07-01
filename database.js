@@ -117,6 +117,25 @@ db.exec(`
   );
 `);
 
+// ─── BANQUE PLU (code-barres à prix intégré) ────────────────────────────────
+// Le code-barres UPC "2 PPPPP C ####  C" contient le PLU (numéro d'article) + le prix.
+// PLU → nom de coupe + prix/kg. Permet de scanner le code-barres au lieu d'analyser toute l'étiquette.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS plu (
+    plu      TEXT PRIMARY KEY,
+    coupe    TEXT,
+    prix_kg  REAL,
+    date_maj TEXT DEFAULT (datetime('now','localtime'))
+  );
+`);
+// Seed initial : 23 PLU décodés depuis les vraies étiquettes scannées
+const PLU_SEED = [{"plu":"01035","coupe":"Steak français de boeuf Wagyu","prix_kg":77.99},{"plu":"01051","coupe":"Os à soupe de boeuf Wagyu","prix_kg":8.99},{"plu":"01023","coupe":"Bavette de boeuf Wagyu","prix_kg":135},{"plu":"01024","coupe":"Filet mignon de boeuf Wagyu","prix_kg":220},{"plu":"01032","coupe":"Flanc de boeuf Wagyu","prix_kg":70},{"plu":"01022","coupe":"Surlonge de boeuf Wagyu","prix_kg":75},{"plu":"01025","coupe":"Contre-filet de boeuf Wagyu","prix_kg":140},{"plu":"01047","coupe":"Coeur de boeuf Wagyu","prix_kg":30.99},{"plu":"01048","coupe":"Joue de boeuf Wagyu","prix_kg":75},{"plu":"01055","coupe":"Queue de boeuf Wagyu","prix_kg":35.99},{"plu":"01059","coupe":"Langue de boeuf Wagyu","prix_kg":29.99},{"plu":"01049","coupe":"Onglet de boeuf Wagyu","prix_kg":175},{"plu":"01053","coupe":"Hampe de boeuf Wagyu","prix_kg":189},{"plu":"01050","coupe":"Côtes coréennes de boeuf Wagyu","prix_kg":67},{"plu":"01027","coupe":"Steak Baseball de boeuf Wagyu","prix_kg":77.99},{"plu":"01021","coupe":"Culotte (Picanha) de boeuf Wagyu","prix_kg":105},{"plu":"01061","coupe":"Denver de boeuf Wagyu","prix_kg":141.99},{"plu":"01037","coupe":"Côtes levées de boeuf Wagyu","prix_kg":38.99},{"plu":"01052","coupe":"Os à moelle de boeuf Wagyu","prix_kg":20.99},{"plu":"01030","coupe":"Macreuse de boeuf Wagyu","prix_kg":143.99},{"plu":"01054","coupe":"Araignée de boeuf Wagyu","prix_kg":110.98},{"plu":"01029","coupe":"Faux-filet de boeuf Wagyu","prix_kg":150},{"plu":"01028","coupe":"Steak de côte de boeuf Wagyu","prix_kg":132.99}];
+{
+  const insPlu = db.prepare(`INSERT OR IGNORE INTO plu (plu, coupe, prix_kg) VALUES (@plu, @coupe, @prix_kg)`);
+  const seedTx = db.transaction(() => { for (const p of PLU_SEED) insPlu.run(p); });
+  seedTx();
+}
+
 // ─── SEED : CATALOGUE COMPLET LASSONDE — 44 PRODUITS ────────────────────────
 const prixLassonde = [
   // ULTRA PREMIUM
@@ -686,4 +705,23 @@ module.exports = {
   getPrixSuggeres,
   comparerPrix,
   getDashboard,
+  getPlu,
+  upsertPlu,
+  getAllPlu,
 };
+
+// ─── PLU (code-barres à prix intégré) ───────────────────────────────────────
+function getPlu(plu) {
+  if (!plu) return null;
+  return db.prepare('SELECT plu, coupe, prix_kg FROM plu WHERE plu = ?').get(String(plu));
+}
+function upsertPlu(plu, coupe, prix_kg) {
+  if (!plu || !coupe) return;
+  db.prepare(`INSERT INTO plu (plu, coupe, prix_kg) VALUES (@plu, @coupe, @prix_kg)
+    ON CONFLICT(plu) DO UPDATE SET coupe = excluded.coupe,
+      prix_kg = COALESCE(excluded.prix_kg, prix_kg), date_maj = datetime('now','localtime')`)
+    .run({ plu: String(plu), coupe, prix_kg: prix_kg || null });
+}
+function getAllPlu() {
+  return db.prepare('SELECT plu, coupe, prix_kg FROM plu ORDER BY plu').all();
+}
