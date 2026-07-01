@@ -284,8 +284,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 /* Pied de page global : marque + gros espace en bas pour que les menus déroulants
    puissent s'ouvrir sans être coupés par la barre du bas (injecté sur chaque page scrollable) */
 .app-footer{text-align:center;font-family:Georgia,serif;font-size:13px;color:var(--gold);opacity:.45;
-  letter-spacing:.5px;margin-top:auto;padding-top:18px;border-top:1px solid var(--border);
-  padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+  letter-spacing:.5px;margin-top:auto;padding-top:16px;border-top:1px solid var(--border);
+  padding-bottom:8px}
 /* Vente : défilement fluide (sinon la liste des ventes déborde sans pouvoir descendre) */
 #panel-vente{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
 /* Défilement fluide pour TOUS les onglets (Troupeau, Vérif héritaient de overflow:hidden) */
@@ -691,10 +691,13 @@ button,label[for],[role=button]{cursor:pointer}
 .vente-row-info{font-size:14px;color:var(--text)}
 .vente-row-sub{font-family:sans-serif;font-size:11px;color:var(--muted);margin-top:2px}
 .vente-row-prix{font-size:14px;color:var(--green)}
-/* Ventes groupées par jour */
-.vente-jour{margin-bottom:22px}
-.vente-jour-tete{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
-.vente-jour-date{font-family:sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;
+/* Ventes groupées par jour (accordéon, fermé par défaut) */
+.vente-jour{margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.vente-jour-tete{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;margin-bottom:8px}
+.vente-jour-tete:active{opacity:.7}
+.vente-jour.collapsed .troupeau-chevron{transform:rotate(-90deg)}
+.vente-jour.collapsed .vente-jour-rows{display:none}
+.vente-jour-date{flex:1;font-family:sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;
   text-transform:uppercase;color:var(--gold)}
 .vente-jour-total{font-size:16px;color:var(--gold);font-weight:700}
 .vente-jour-caisse{display:flex;gap:10px;margin-bottom:10px}
@@ -2184,11 +2187,17 @@ function renderBeteCard(b) {
   const estVache = b.type === 'vache';
   const estReproducteur = estVache || b.type === 'taureau';   // reproducteurs : pas d'abattage
 
+  // Tag de la mère extrait des notes ("... · Mère: XXXX"), et notes nettoyées de ce tag
+  const partsNotes = (b.notes || '').split('·').map(s => s.trim()).filter(Boolean);
+  const mereTag = b.mere_tag || ((partsNotes.find(p => /^Mère\s*:/i.test(p)) || '').replace(/^Mère\s*:\s*/i, '') || null);
+  const notesClean = partsNotes.filter(p => !/^Mère\s*:/i.test(p)).join(' · ');
+
   let meta = [];
-  if (b.tag)        meta.push(`Tag <strong>${b.tag}</strong>`);
-  if (b.type)       meta.push(`<strong>${b.type}</strong>`);          // race retirée (tout est Wagyu)
-  if (age !== null) meta.push(`Âge <strong>${age} mois</strong>`);
-  else if (estVache) meta.push(`Âge <strong>née avant 2023</strong>`);  // vaches sans date = plus vieilles
+  // Tag déjà affiché en haut, type = titre de la sous-section → on ne les répète pas
+  if (mereTag)          meta.push(`Mère <strong>${mereTag}</strong>`);
+  if (age !== null)     meta.push(`Âge <strong>${age} mois</strong>`);
+  else if (estVache)    meta.push(`Âge <strong>née avant 2023</strong>`);
+  if (b.date_naissance) meta.push(`Né le <strong>${b.date_naissance}</strong>`);   // date de naissance exacte  // vaches sans date = plus vieilles
   // Bébés vivants (naissances − morts) — visible directement sur la carte de la vache
   if (estVache) {
     const bebesTot = b.nombre_naissances != null ? b.nombre_naissances : ((b.vivants || 0) + (b.morts || 0));
@@ -2228,7 +2237,7 @@ function renderBeteCard(b) {
       ${b.date_derniere_naissance ? `<div class="bete-stat"><span class="bete-stat-num" style="font-size:12px">${b.date_derniere_naissance}</span><span class="bete-stat-lbl">dernière naissance</span></div>` : ''}
     </div>`;
   }
-  if (b.notes) detailsInner += `<div class="bete-notes">${b.notes}</div>`;
+  if (notesClean) detailsInner += `<div class="bete-notes">${notesClean}</div>`;
   const details = detailsInner ? `<div class="bete-details" hidden>${detailsInner}</div>` : '';
   const menuBtn = detailsInner ? `<button class="bete-del" onclick="toggleBeteDetails(this)" aria-label="Détails">⋯</button>` : '';
 
@@ -2329,7 +2338,7 @@ function setTriTroupeau(type, key) {
   renderTroupeau();
 }
 
-function renderTroupeauSubSection(type, betes) {
+function renderTroupeauSubSection(type, betes, collapsed) {
   if (!betes.length) return '';
   const emojiType = { 'vache': '🐄', 'bœuf': '🐂', 'veau': '🐃', 'taureau': '🐮' }[type] || '🐑';
   const labelType = { 'vache': 'Vaches', 'bœuf': 'Bœufs', 'veau': 'Veaux', 'taureau': 'Taureaux' }[type] || type;
@@ -2339,7 +2348,7 @@ function renderTroupeauSubSection(type, betes) {
   const triSel = tris.length > 1 ? `<select class="tri-select" onclick="event.stopPropagation()" onchange="setTriTroupeau('${type}', this.value)">
       ${tris.map(t => `<option value="${t.key}" ${(S.triTroupeau[type] === t.key) ? 'selected' : ''}>${t.label}</option>`).join('')}
     </select>` : '';
-  return `<div class="troupeau-subsection">
+  return `<div class="troupeau-subsection${collapsed ? ' collapsed' : ''}">
     <div class="troupeau-subsection-title" onclick="toggleTroupeauSection(event)">
       <span class="troupeau-chevron">▸</span>
       <span class="troupeau-subsection-lbl">${emojiType} ${labelType} (${betes.length})</span>
@@ -2349,7 +2358,7 @@ function renderTroupeauSubSection(type, betes) {
   </div>`;
 }
 
-function renderTroupeauSection(titre, emoji, betes, collapsed) {
+function renderTroupeauSection(titre, emoji, betes, collapsed, subCollapsed) {
   if (!betes.length) return '';
 
   // Grouper par type si c'est le pâturage/abattoir (vivants)
@@ -2363,10 +2372,10 @@ function renderTroupeauSection(titre, emoji, betes, collapsed) {
       const t = ['taureau', 'vache', 'bœuf', 'veau'].includes(b.type) ? b.type : 'bœuf';
       parType[t].push(b);
     });
-    html = renderTroupeauSubSection('taureau', parType['taureau']) +
-           renderTroupeauSubSection('vache', parType['vache']) +
-           renderTroupeauSubSection('bœuf', parType['bœuf']) +
-           renderTroupeauSubSection('veau', parType['veau']);
+    html = renderTroupeauSubSection('taureau', parType['taureau'], subCollapsed) +
+           renderTroupeauSubSection('vache', parType['vache'], subCollapsed) +
+           renderTroupeauSubSection('bœuf', parType['bœuf'], subCollapsed) +
+           renderTroupeauSubSection('veau', parType['veau'], subCollapsed);
   } else {
     // Pas de subdivision pour frigo/vendus
     html = betes.map(renderBeteCard).join('');
@@ -2407,18 +2416,14 @@ function renderTroupeau() {
   const frigo   = filtre.filter(b => b.statut === 'frigo');
   const vendus  = filtre.filter(b => b.statut === 'vendu');
 
-  // Par défaut : pâturage fermé (grande liste), frigo ouvert. En recherche : tout ouvert.
+  // Par défaut : pâturage fermé + ses sous-catégories fermées, frigo ouvert.
+  // En recherche : tout ouvert pour voir les résultats.
   const enRecherche = !!q;
   let html = '';
-  html += renderTroupeauSection('En pâturage', '🌿', vivants, !enRecherche);
-  html += renderTroupeauSection('Au frigo — prêt à manger', '❄️', frigo, false);
-  html += renderTroupeauSection('Vendus', '📦', vendus, !enRecherche);
+  html += renderTroupeauSection('En pâturage', '🌿', vivants, !enRecherche, !enRecherche);
+  html += renderTroupeauSection('Au frigo — prêt à manger', '❄️', frigo, false, false);
+  html += renderTroupeauSection('Vendus', '📦', vendus, !enRecherche, !enRecherche);
   body.innerHTML = html;
-
-  // Ouvrir automatiquement les sous-sections au chargement
-  setTimeout(() => {
-    document.querySelectorAll('.troupeau-subsection').forEach(sec => sec.classList.remove('collapsed'));
-  }, 0);
 }
 
 // Pied de page « Les Élevages Lassonde » + gros espace en bas, ajouté une fois à chaque
@@ -3013,19 +3018,26 @@ async function loadVentesRecentes() {
           <div class="vente-row-prix">${v.prix_vendu != null ? v.prix_vendu.toFixed(2) + ' $' : ''}</div>
           <button class="vente-del" onclick="annulerVenteUI(${v.id}, '${(v.coupe || '').replace(/'/g, '’')}')" aria-label="Annuler cette vente">✕</button>
         </div>`).join('');
-      return `<div class="vente-jour">
-        <div class="vente-jour-tete">
-          <span class="vente-jour-date">${formatJour(jour)}</span>
+      return `<div class="vente-jour collapsed">
+        <div class="vente-jour-tete" onclick="toggleVenteJour(event)">
+          <span class="troupeau-chevron">▸</span>
+          <span class="vente-jour-date">${formatJour(jour)} · ${vs.length} vente${vs.length > 1 ? 's' : ''}</span>
           <span class="vente-jour-total">${total.toFixed(2)} $</span>
         </div>
         <div class="vente-jour-caisse">
           <span>💵 Comptant <strong>${cash.toFixed(2)} $</strong></span>
           <span>💳 Interac <strong>${interac.toFixed(2)} $</strong></span>
         </div>
-        ${rows}
+        <div class="vente-jour-rows">${rows}</div>
       </div>`;
     }).join('');
   } catch (_) {}
+}
+
+// Déplie / replie la liste des transactions d'un jour
+function toggleVenteJour(e) {
+  const jour = e.target.closest('.vente-jour');
+  if (jour) jour.classList.toggle('collapsed');
 }
 
 async function annulerVenteUI(id, coupe) {
