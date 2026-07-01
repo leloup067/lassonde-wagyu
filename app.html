@@ -2275,9 +2275,10 @@ function toggleTroupeauSection(e) {
 // Options de tri par type. Bœufs/veaux : âge seulement. Vaches : âge + productivité + pertes.
 const TRIS_TROUPEAU = {
   vache:  [
-    { key: 'age',     label: 'Âge : vieux → jeune' },
-    { key: 'enfants', label: 'Plus d’enfants' },
-    { key: 'morts',   label: 'Plus d’enfants morts' },
+    { key: 'age',       label: 'Âge : vieux → jeune' },
+    { key: 'age_jeune', label: 'Âge : jeune → vieux' },
+    { key: 'enfants',   label: 'Plus d’enfants' },
+    { key: 'morts',     label: 'Plus d’enfants morts' },
   ],
   'bœuf': [ { key: 'age', label: 'Âge : vieux → jeune' } ],
   veau:   [ { key: 'age', label: 'Âge : vieux → jeune' } ],
@@ -2290,9 +2291,10 @@ function trierBetes(betes, type) {
   // Pour les autres types, une bête sans date est rejetée à la fin.
   const sentinelle = type === 'vache' ? '0000-00-00' : '9999-99-99';
   const dateOrd = b => b.date_naissance || sentinelle;
-  if (tri === 'enfants')     arr.sort((a, b) => (b.nombre_naissances || 0) - (a.nombre_naissances || 0));
-  else if (tri === 'morts')  arr.sort((a, b) => (b.nombre_enfants_morts || 0) - (a.nombre_enfants_morts || 0));
-  else                       arr.sort((a, b) => dateOrd(a).localeCompare(dateOrd(b)));  // âge : vieux → jeune
+  if (tri === 'enfants')        arr.sort((a, b) => (b.nombre_naissances || 0) - (a.nombre_naissances || 0));
+  else if (tri === 'morts')     arr.sort((a, b) => (b.nombre_enfants_morts || 0) - (a.nombre_enfants_morts || 0));
+  else if (tri === 'age_jeune') arr.sort((a, b) => dateOrd(b).localeCompare(dateOrd(a)));  // jeune → vieux (sans date = vieilles, en dernier)
+  else                          arr.sort((a, b) => dateOrd(a).localeCompare(dateOrd(b)));  // âge : vieux → jeune
   return arr;
 }
 
