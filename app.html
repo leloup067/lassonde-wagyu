@@ -2338,7 +2338,17 @@ function trierBetes(betes, type) {
 
 function setTriTroupeau(type, key) {
   S.triTroupeau[type] = key;
-  renderTroupeau();
+  // Re-trier UNIQUEMENT la sous-section de ce type, sans re-render global
+  // → préserve l'état ouvert/fermé des autres listes déroulantes.
+  const sub = document.querySelector(`.troupeau-subsection[data-type="${type}"]`);
+  const betesDiv = sub && sub.querySelector('.troupeau-betes');
+  if (!betesDiv) { renderTroupeau(); return; }
+  const q = normaliserCoupe($('troupeau-search').value);
+  const groupe = b => (['taureau', 'vache', 'bœuf', 'veau'].includes(b.type) ? b.type : 'bœuf');
+  const betes = (S.troupeau || []).filter(b =>
+    (b.statut === 'pâturage' || b.statut === 'abattoir') && groupe(b) === type &&
+    (!q || normaliserCoupe(b.tag).includes(q) || String(b.numero_bete).includes(q) || normaliserCoupe(b.nom).includes(q)));
+  betesDiv.innerHTML = trierBetes(betes, type).map(renderBeteCard).join('');
 }
 
 function renderTroupeauSubSection(type, betes, collapsed) {
@@ -2351,7 +2361,7 @@ function renderTroupeauSubSection(type, betes, collapsed) {
   const triSel = tris.length > 1 ? `<select class="tri-select" onclick="event.stopPropagation()" onchange="setTriTroupeau('${type}', this.value)">
       ${tris.map(t => `<option value="${t.key}" ${(S.triTroupeau[type] === t.key) ? 'selected' : ''}>${t.label}</option>`).join('')}
     </select>` : '';
-  return `<div class="troupeau-subsection${collapsed ? ' collapsed' : ''}">
+  return `<div class="troupeau-subsection${collapsed ? ' collapsed' : ''}" data-type="${type}">
     <div class="troupeau-subsection-title" onclick="toggleTroupeauSection(event)">
       <span class="troupeau-chevron">▸</span>
       <span class="troupeau-subsection-lbl">${emojiType} ${labelType} (${betes.length})</span>
