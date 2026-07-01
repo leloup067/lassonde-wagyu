@@ -374,7 +374,7 @@ function importerBetes(rows) {
         numero_bete:              num,
         tag:                      tag,
         nom:                      (r.nom   || '').toString().trim().slice(0, 80)  || null,
-        type:                     ['bœuf', 'veau', 'vache'].includes(r.type) ? r.type : 'bœuf',
+        type:                     ['bœuf', 'veau', 'vache', 'taureau'].includes(r.type) ? r.type : 'bœuf',
         date_naissance:           (r.date_naissance || '').toString().trim().slice(0, 10) || null,
         poids_vif_kg:             parseFloat(r.poids_vif_kg) || null,
         race:                     (r.race  || '').toString().trim().slice(0, 60)  || 'Wagyu',

@@ -2162,6 +2162,7 @@ function renderBeteCard(b) {
   const vivant = b.statut === 'pâturage' || b.statut === 'abattoir';
 
   const estVache = b.type === 'vache';
+  const estReproducteur = estVache || b.type === 'taureau';   // reproducteurs : pas d'abattage
 
   let meta = [];
   if (b.tag)        meta.push(`Tag <strong>${b.tag}</strong>`);
@@ -2175,8 +2176,8 @@ function renderBeteCard(b) {
     const vivantsBebes = Math.max(0, bebesTot - mortsTot);
     meta.push(`<strong>${vivantsBebes}</strong> bébé${vivantsBebes > 1 ? 's' : ''} vivant${vivantsBebes > 1 ? 's' : ''}`);
   }
-  // Les vaches sont rarement abattues → pas de compte à rebours ni « prêt pour l'abattage »
-  if (vivant && age !== null && !estVache) {
+  // Vaches et taureaux (reproducteurs) rarement abattus → pas de compte à rebours ni « prêt pour l'abattage »
+  if (vivant && age !== null && !estReproducteur) {
     const restant = AGE_ABATTAGE_MOIS - age;
     meta.push(restant > 0 ? `Abattage dans <strong>~${restant} mois</strong>` : `<strong>Prêt pour l'abattage</strong>`);
   }
@@ -2213,7 +2214,7 @@ function renderBeteCard(b) {
 
   // Actions — pas d'envoi à l'abattage pour les vaches
   let actions = '';
-  if (b.statut === 'pâturage' && !estVache) {
+  if (b.statut === 'pâturage' && !estReproducteur) {
     actions = `<div class="bete-actions">
       <button class="primary" onclick="changerStatutBete(${b.numero_bete}, 'abattoir')">🚚 Envoyer à l'abattage</button>
     </div>`;
@@ -2278,16 +2279,17 @@ const TRIS_TROUPEAU = {
     { key: 'enfants',   label: 'Plus d’enfants' },
     { key: 'morts',     label: 'Plus d’enfants morts' },
   ],
-  'bœuf': [ { key: 'age', label: 'Âge : vieux → jeune' } ],
-  veau:   [ { key: 'age', label: 'Âge : vieux → jeune' } ],
+  'bœuf':   [ { key: 'age', label: 'Âge : vieux → jeune' } ],
+  veau:     [ { key: 'age', label: 'Âge : vieux → jeune' } ],
+  taureau:  [ { key: 'age', label: 'Âge : vieux → jeune' } ],
 };
 
 function trierBetes(betes, type) {
   const tri = (S.triTroupeau && S.triTroupeau[type]) || 'age';
   const arr = betes.slice();
-  // Les vaches sans date sont les plus vieilles (nées avant le registre de 2023) → en premier.
+  // Vaches/taureaux sans date = les plus vieux (nés avant le registre de 2023) → en premier.
   // Pour les autres types, une bête sans date est rejetée à la fin.
-  const sentinelle = type === 'vache' ? '0000-00-00' : '9999-99-99';
+  const sentinelle = (type === 'vache' || type === 'taureau') ? '0000-00-00' : '9999-99-99';
   const dateOrd = b => b.date_naissance || sentinelle;
   if (tri === 'enfants')        arr.sort((a, b) => (b.nombre_naissances || 0) - (a.nombre_naissances || 0));
   else if (tri === 'morts')     arr.sort((a, b) => (b.nombre_enfants_morts || 0) - (a.nombre_enfants_morts || 0));
@@ -2303,8 +2305,8 @@ function setTriTroupeau(type, key) {
 
 function renderTroupeauSubSection(type, betes) {
   if (!betes.length) return '';
-  const emojiType = { 'vache': '🐄', 'bœuf': '🐂', 'veau': '🐃' }[type] || '🐑';
-  const labelType = { 'vache': 'Vaches', 'bœuf': 'Bœufs', 'veau': 'Veaux' }[type] || type;
+  const emojiType = { 'vache': '🐄', 'bœuf': '🐂', 'veau': '🐃', 'taureau': '🐮' }[type] || '🐑';
+  const labelType = { 'vache': 'Vaches', 'bœuf': 'Bœufs', 'veau': 'Veaux', 'taureau': 'Taureaux' }[type] || type;
   const html = trierBetes(betes, type).map(renderBeteCard).join('');
   const tris = TRIS_TROUPEAU[type] || [];
   // Menu de tri seulement quand il y a plusieurs choix (vaches). stopPropagation : ne pas replier la section.
@@ -2330,12 +2332,13 @@ function renderTroupeauSection(titre, emoji, betes) {
 
   if (vivants) {
     // Subdiviser par type
-    const parType = { 'vache': [], 'bœuf': [], 'veau': [] };
+    const parType = { 'taureau': [], 'vache': [], 'bœuf': [], 'veau': [] };
     betes.forEach(b => {
-      const t = b.type === 'vache' ? 'vache' : (b.type === 'bœuf' ? 'bœuf' : 'veau');
+      const t = ['taureau', 'vache', 'bœuf', 'veau'].includes(b.type) ? b.type : 'bœuf';
       parType[t].push(b);
     });
-    html = renderTroupeauSubSection('vache', parType['vache']) +
+    html = renderTroupeauSubSection('taureau', parType['taureau']) +
+           renderTroupeauSubSection('vache', parType['vache']) +
            renderTroupeauSubSection('bœuf', parType['bœuf']) +
            renderTroupeauSubSection('veau', parType['veau']);
   } else {
