@@ -620,6 +620,9 @@ button,label[for],[role=button]{cursor:pointer}
   padding:14px;margin-bottom:18px}
 .panier-head{font-family:sans-serif;font-size:12px;color:var(--gold);font-weight:700;
   text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.panier-empty{font-family:sans-serif;font-size:13px;color:var(--muted);text-align:center;
+  padding:18px 8px}
+#btn-vente-scan{margin-top:2px}
 .panier-item{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);
   border-radius:10px;padding:10px 12px;margin-bottom:6px}
 .panier-item-info{flex:1;min-width:0}
@@ -927,18 +930,8 @@ button,label[for],[role=button]{cursor:pointer}
     <!-- ══ VENTE ══ -->
     <div id="panel-vente" class="panel">
       <div id="vente-idle">
-        <button id="btn-vente-scan">📷 Scanner un article</button>
-
-        <!-- Analyse en cours -->
-        <div id="vente-analyzing" style="display:none">
-          <div id="vente-analyze-status">
-            <div class="wave-dots"><div class="wave-dot"></div><div class="wave-dot"></div><div class="wave-dot"></div></div>
-            <span>Lecture de l'étiquette…</span>
-          </div>
-        </div>
-
-        <!-- Panier -->
-        <div id="vente-panier" style="display:none">
+        <!-- Panier — toujours visible, en premier -->
+        <div id="vente-panier">
           <div class="panier-head"><span id="panier-count">0</span> article(s) dans le panier</div>
           <div id="panier-list"></div>
           <div id="panier-total"><span>Total</span><strong id="panier-total-val">0 $</strong></div>
@@ -949,6 +942,17 @@ button,label[for],[role=button]{cursor:pointer}
           </div>
           <button id="btn-encaisser" disabled>✓ Encaisser</button>
           <button id="btn-vider-panier">Vider le panier</button>
+        </div>
+
+        <!-- Ajouter un article en le scannant -->
+        <button id="btn-vente-scan">📷 Ajouter un article</button>
+
+        <!-- Analyse en cours -->
+        <div id="vente-analyzing" style="display:none">
+          <div id="vente-analyze-status">
+            <div class="wave-dots"><div class="wave-dot"></div><div class="wave-dot"></div><div class="wave-dot"></div></div>
+            <span>Lecture de l'étiquette…</span>
+          </div>
         </div>
 
         <!-- Dernières ventes -->
@@ -2910,11 +2914,21 @@ function renderPanier() {
   const p = S.panier || [];
   const box = $('vente-panier');
   if (!box) return;
-  if (!p.length) { box.style.display = 'none'; return; }
-  box.style.display = '';
+  box.style.display = '';                       // toujours visible, même vide
   $('panier-count').textContent = p.length;
   const total = p.reduce((s, x) => s + (x.prix_total || 0), 0);
   $('panier-total-val').textContent = total.toFixed(2) + ' $';
+
+  if (!p.length) {
+    // Panier vide : invite à scanner, encaissement désactivé
+    $('panier-list').innerHTML = '<div class="panier-empty">Panier vide — scanne un article pour commencer</div>';
+    $('btn-encaisser').disabled = true;
+    $('btn-encaisser').textContent = '✓ Encaisser';
+    $('btn-vider-panier').style.display = 'none';
+    return;
+  }
+
+  $('btn-vider-panier').style.display = '';
   $('panier-list').innerHTML = p.map(s => `
     <div class="panier-item">
       <div class="panier-item-info">
