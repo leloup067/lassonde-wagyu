@@ -485,6 +485,9 @@ button,label[for],[role=button]{cursor:pointer}
 .bete-meta strong{color:var(--text);font-weight:600}
 .bete-frigo-stats{display:flex;gap:8px;margin-top:12px}
 .bete-repro-stats{display:flex;gap:8px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+.bete-details{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+.bete-details .bete-repro-stats{margin-top:0;border-top:none;padding-top:0}
+.bete-notes{font-family:sans-serif;font-size:12.5px;color:var(--text);margin-top:8px;line-height:1.4}
 .bete-stat{flex:1;background:rgba(200,169,110,.07);border-radius:8px;padding:8px 6px;text-align:center}
 .bete-stat-num{display:block;font-size:14px;color:var(--gold)}
 .bete-stat-lbl{display:block;font-family:sans-serif;font-size:9.5px;color:var(--muted);
@@ -2147,11 +2150,14 @@ function renderBeteCard(b) {
   const age = ageEnMois(b.date_naissance);
   const vivant = b.statut === 'pâturage' || b.statut === 'abattoir';
 
+  const estVache = b.type === 'vache';
+
   let meta = [];
   if (b.tag)        meta.push(`Tag <strong>${b.tag}</strong>`);
-  if (b.type)           meta.push(`<strong>${b.type}</strong>${b.race ? ' ' + b.race : ''}`);
-  if (age !== null)     meta.push(`Âge <strong>${age} mois</strong>`);
-  if (vivant && age !== null) {
+  if (b.type)       meta.push(`<strong>${b.type}</strong>`);          // race retirée (tout est Wagyu)
+  if (age !== null) meta.push(`Âge <strong>${age} mois</strong>`);
+  // Les vaches sont rarement abattues → pas de compte à rebours ni « prêt pour l'abattage »
+  if (vivant && age !== null && !estVache) {
     const restant = AGE_ABATTAGE_MOIS - age;
     meta.push(restant > 0 ? `Abattage dans <strong>~${restant} mois</strong>` : `<strong>Prêt pour l'abattage</strong>`);
   }
@@ -2159,7 +2165,6 @@ function renderBeteCard(b) {
   if (b.date_envoi_abattage)  meta.push(`Envoyé à l'abattage le <strong>${b.date_envoi_abattage}</strong>`);
   if (b.date_abattage)        meta.push(`Abattu le <strong>${b.date_abattage}</strong>`);
   if (b.date_livraison && b.statut === 'frigo') meta.push(`Amené le <strong>${b.date_livraison}</strong>`);
-  if (b.notes)                meta.push(b.notes);
 
   // Stats frigo : morceaux scannés liés à cette bête
   let frigoStats = '';
@@ -2172,20 +2177,24 @@ function renderBeteCard(b) {
     </div>`;
   }
 
-  // Stats de reproduction pour les vaches
-  let reproStats = '';
-  if (b.type === 'vache' && (b.vivants || b.morts)) {
-    const totalDescendants = (b.vivants || 0) + (b.morts || 0);
-    const tauxMortalite = totalDescendants > 0 ? Math.round((b.morts || 0) / totalDescendants * 100) : 0;
-    reproStats = `<div class="bete-repro-stats">
-      <div class="bete-stat"><span class="bete-stat-num">${b.vivants || 0}</span><span class="bete-stat-lbl">veaux vivants</span></div>
-      <div class="bete-stat"><span class="bete-stat-num">${b.morts || 0}</span><span class="bete-stat-lbl">fausses couches</span></div>
-      ${totalDescendants > 0 ? `<div class="bete-stat"><span class="bete-stat-num">${tauxMortalite}%</span><span class="bete-stat-lbl">mortalité</span></div>` : ''}
+  // Menu « ⋯ » : notes + (vaches) nombre de bébés et de morts
+  let detailsInner = '';
+  if (estVache) {
+    const bebes = b.nombre_naissances != null ? b.nombre_naissances : ((b.vivants || 0) + (b.morts || 0));
+    const morts = b.nombre_enfants_morts != null ? b.nombre_enfants_morts : (b.morts || 0);
+    detailsInner += `<div class="bete-repro-stats">
+      <div class="bete-stat"><span class="bete-stat-num">${bebes}</span><span class="bete-stat-lbl">bébés</span></div>
+      <div class="bete-stat"><span class="bete-stat-num">${morts}</span><span class="bete-stat-lbl">morts</span></div>
+      ${b.date_derniere_naissance ? `<div class="bete-stat"><span class="bete-stat-num" style="font-size:12px">${b.date_derniere_naissance}</span><span class="bete-stat-lbl">dernière naissance</span></div>` : ''}
     </div>`;
   }
+  if (b.notes) detailsInner += `<div class="bete-notes">${b.notes}</div>`;
+  const details = detailsInner ? `<div class="bete-details" hidden>${detailsInner}</div>` : '';
+  const menuBtn = detailsInner ? `<button class="bete-del" onclick="toggleBeteDetails(this)" aria-label="Détails">⋯</button>` : '';
 
+  // Actions — pas d'envoi à l'abattage pour les vaches
   let actions = '';
-  if (b.statut === 'pâturage') {
+  if (b.statut === 'pâturage' && !estVache) {
     actions = `<div class="bete-actions">
       <button class="primary" onclick="changerStatutBete(${b.numero_bete}, 'abattoir')">🚚 Envoyer à l'abattage</button>
     </div>`;
@@ -2205,15 +2214,23 @@ function renderBeteCard(b) {
       </div>
       <div class="bete-card-right">
         <span class="bete-statut ${statutClass}">${b.statut}</span>
-        <button class="bete-del" onclick="ouvrirEditBete(${b.numero_bete})" aria-label="Modifier ce bœuf">✎</button>
-        <button class="bete-del" onclick="supprimerBeteUI(${b.numero_bete}, '${(b.nom || 'Bête #' + b.numero_bete).replace(/'/g, '’')}', ${b.nb_morceaux || 0})" aria-label="Retirer ce bœuf">✕</button>
+        ${menuBtn}
+        <button class="bete-del" onclick="ouvrirEditBete(${b.numero_bete})" aria-label="Modifier">✎</button>
+        <button class="bete-del" onclick="supprimerBeteUI(${b.numero_bete}, '${(b.nom || 'Bête #' + b.numero_bete).replace(/'/g, '’')}', ${b.nb_morceaux || 0})" aria-label="Retirer">✕</button>
       </div>
     </div>
     <div class="bete-meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
     ${frigoStats}
-    ${reproStats}
+    ${details}
     ${actions}
   </div>`;
+}
+
+// Déplie / replie le menu ⋯ (notes + stats de la bête)
+function toggleBeteDetails(btn) {
+  const card = btn.closest('.bete-card');
+  const d = card && card.querySelector('.bete-details');
+  if (d) d.hidden = !d.hidden;
 }
 
 async function supprimerBeteUI(numero, nom, nbMorceaux) {
