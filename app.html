@@ -331,6 +331,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 .stock-cut-head{width:100%;display:flex;align-items:center;gap:10px;background:var(--surface);
   border:1px solid var(--border);border-radius:10px;padding:14px;text-align:left;color:var(--text)}
 .stock-cut-head.open{border-color:var(--gold);border-bottom-left-radius:0;border-bottom-right-radius:0}
+/* Sous-accordéon bœuf (niveau 2, à l'intérieur d'une coupe) */
+.stock-cut-head.beef-sub{background:rgba(200,169,110,.09);color:var(--gold);margin-top:6px}
+.stock-cut-head.beef-sub .stock-cut-name{font-size:13px;font-weight:600}
 .stock-cut-chevron{color:var(--gold);font-size:11px;width:12px;flex-shrink:0}
 .stock-cut-name{flex:1;font-size:15px}
 .stock-cut-meta{font-family:sans-serif;font-size:11.5px;color:var(--muted);white-space:nowrap}
@@ -1959,17 +1962,6 @@ function renderLocalStock(items) {
     .forEach((b, i) => { ordreBete[b.numero_bete] = { ordre: i + 1, date: dateEntree(b), nom: b.nom }; });
   const beteOrdre = n => (n != null && ordreBete[n]) ? ordreBete[n].ordre : 999;
 
-  // Grouper par coupe NORMALISÉE (fusionne les doublons : majuscules, accents, "de boeuf wagyu"…)
-  const grouped = {};
-  for (const item of items) {
-    const k = coupeKey(item.coupe);
-    if (!grouped[k]) grouped[k] = [];
-    grouped[k].push(item);
-  }
-  // Tri FIFO : bœuf le plus ancien d'abord, puis scan le plus ancien
-  for (const k in grouped) grouped[k].sort((a, b) =>
-    (beteOrdre(a.numero_bete) - beteOrdre(b.numero_bete)) || (a.date_scan || '').localeCompare(b.date_scan || ''));
-
   const totalVal = items.reduce((s, i) => s + (i.prix_total || 0), 0);
   const summary  = `<div style="background:var(--surface);border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
     <div style="font-family:sans-serif;font-size:12px;color:var(--muted)">${items.length} sac${items.length>1?'s':''} disponibles</div>
@@ -1977,15 +1969,35 @@ function renderLocalStock(items) {
   </div>`
   + (S.prixMaj ? `<div id="prix-marche-maj">💡 Prix marché Wagyu (Canada) · ${(S.prixMaj || '').slice(0,16)}</div>` : '');
 
-  // Trier les groupes par nom affiché
+  // Carte-paquet (un sac)
+  const itemRow = (item, n, cId) => `
+    <div class="stock-item">
+      <div>
+        <div class="stock-item-name">n°${n} · ${item.poids_kg.toFixed(3)} kg</div>
+        <div class="stock-item-sku">en étalage depuis ${(item.date_scan || '').slice(0,10) || '?'}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="stock-item-price">${item.prix_total.toFixed(2)} $</div>
+        <div style="font-size:10px;color:var(--muted);font-family:sans-serif">${item.prix_kg.toFixed(2)} $/kg</div>
+      </div>
+      ${item.photo ? `<button class="stock-photo" onclick="ouvrirPhoto(${item.id})" aria-label="Revoir la photo">📷</button>` : ''}
+      <button class="stock-photo" onclick="renommerSacUI(${item.id}, '${(item.coupe || '').replace(/'/g, '’')}')" aria-label="Corriger la coupe">✎</button>
+      <button class="stock-del" onclick="deleteStockItem(${item.id}, '${cId}')" aria-label="Retirer ce sac">✕</button>
+    </div>`;
+
+  // ── NIVEAU 1 : grouper par COUPE ──
+  const grouped = {};
+  for (const item of items) { const k = coupeKey(item.coupe); (grouped[k] = grouped[k] || []).push(item); }
+  for (const k in grouped) grouped[k].sort((a, b) =>
+    (beteOrdre(a.numero_bete) - beteOrdre(b.numero_bete)) || (a.date_scan || '').localeCompare(b.date_scan || ''));
+
   const sections = Object.keys(grouped).sort((a, b) => nomCoupeAffiche(grouped[a]).localeCompare(nomCoupeAffiche(grouped[b])));
   body.innerHTML = summary + sections.map(key => {
     const g = grouped[key];
-    const coupe = nomCoupeAffiche(g);          // nom le plus fréquent du groupe
+    const coupe = nomCoupeAffiche(g);
     const poids = g.reduce((s, i) => s + (i.poids_kg || 0), 0);
     const val   = g.reduce((s, i) => s + (i.prix_total || 0), 0);
     const cId   = (coupe || '').replace(/'/g, '’');
-    // Prix marché suggéré pour cette coupe + comparaison avec le prix moyen actuel
     const suggere = (S.prixSuggeres || {})[key];
     const monPrixKg = g.length ? g.reduce((s, i) => s + (i.prix_kg || 0), 0) / g.length : 0;
     let marcheLigne = '';
@@ -1995,49 +2007,34 @@ function renderLocalStock(items) {
         ` · ton prix ${monPrixKg.toFixed(0)} $/kg <span class="${ecart >= 0 ? 'ecart-haut' : 'ecart-bas'}">(${ecart >= 0 ? '+' : ''}${ecart}%)</span>`;
       marcheLigne = `<div class="cut-marche">💡 Marché Wagyu : <strong>~${suggere.toFixed(0)} $/kg</strong>${ecartTxt}</div>`;
     }
-    // Combien de bœufs différents dans cette coupe ?
-    const betesCut = [...new Set(g.map(i => i.numero_bete))];
-    const multiBete = betesCut.filter(n => n != null).length > 1;
+    const betesCut = [...new Set(g.map(i => i.numero_bete))].filter(n => n != null);
+    const multiBete = betesCut.length > 1;
     const beteBadge = multiBete ? ` · 🐂 ${betesCut.length} bœufs` : '';
 
-    // Une carte-paquet
-    const itemRow = (item, n) => `
-      <div class="stock-item">
-        <div>
-          <div class="stock-item-name">n°${n} · ${item.poids_kg.toFixed(3)} kg</div>
-          <div class="stock-item-sku">en étalage depuis ${(item.date_scan || '').slice(0,10) || '?'}${!multiBete && item.numero_bete != null ? ' · bête #' + item.numero_bete : ''}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="stock-item-price">${item.prix_total.toFixed(2)} $</div>
-          <div style="font-size:10px;color:var(--muted);font-family:sans-serif">${item.prix_kg.toFixed(2)} $/kg</div>
-        </div>
-        ${item.photo ? `<button class="stock-photo" onclick="ouvrirPhoto(${item.id})" aria-label="Revoir la photo">📷</button>` : ''}
-        <button class="stock-photo" onclick="renommerSacUI(${item.id}, '${(item.coupe || '').replace(/'/g, '’')}')" aria-label="Corriger la coupe">✎</button>
-        <button class="stock-del" onclick="deleteStockItem(${item.id}, '${cId}')" aria-label="Retirer ce sac">✕</button>
+    // ── NIVEAU 2 : chaque BŒUF est un accordéon fermé par défaut → ses paquets se déroulent ──
+    const parBete = {};
+    g.forEach(i => { const bn = (i.numero_bete == null) ? 'null' : String(i.numero_bete); (parBete[bn] = parBete[bn] || []).push(i); });
+    const betesOrdonnees = Object.keys(parBete).sort((a, b) => beteOrdre(a) - beteOrdre(b));
+    const itemsHtml = betesOrdonnees.map((bn, idx) => {
+      const sous = parBete[bn];
+      const info = ordreBete[bn] || {};
+      const estNul = (bn === 'null');
+      const bete = (S.troupeau || []).find(b => String(b.numero_bete) === bn);
+      const prio = (idx === 0 && !estNul && betesOrdonnees.length > 1) ? '<span class="prio-vendre">à écouler en premier</span>' : '';
+      const label = estNul ? 'Sans bœuf assigné' : `Bœuf ${bete && bete.tag ? bete.tag : '#' + bn}${info.nom ? ' · ' + info.nom : ''}`;
+      const spoids = sous.reduce((s, i) => s + (i.poids_kg || 0), 0);
+      const sval = sous.reduce((s, i) => s + (i.prix_total || 0), 0);
+      return `<div class="stock-cut">
+        <button class="stock-cut-head beef-sub" onclick="toggleCut(this)">
+          <span class="stock-cut-chevron">▸</span>
+          <span class="stock-cut-name">🐂 ${label} ${prio}</span>
+          <span class="stock-cut-meta">${sous.length} paquet${sous.length>1?'s':''} · ${spoids.toFixed(1)} kg · ${sval.toFixed(0)} $</span>
+        </button>
+        <div class="stock-cut-items" style="display:none">${sous.map((item, i) => itemRow(item, i + 1, cId)).join('')}</div>
       </div>`;
+    }).join('');
 
-    let itemsHtml;
-    if (multiBete) {
-      // Sous-grouper par bœuf, le plus ancien d'abord (à écouler en premier)
-      const parBete = {};
-      g.forEach(i => { (parBete[i.numero_bete] = parBete[i.numero_bete] || []).push(i); });
-      const betesOrdonnees = Object.keys(parBete).sort((a, b) => beteOrdre(a) - beteOrdre(b));
-      itemsHtml = betesOrdonnees.map((bn, idx) => {
-        const sous = parBete[bn];
-        const info = ordreBete[bn] || {};
-        const estNul = (bn === 'null' || bn === 'undefined' || bn == null);
-        const dateTxt = info.date ? ' · entré ' + info.date.slice(0,10) : '';
-        const prio = (idx === 0 && !estNul) ? '<span class="prio-vendre">à écouler en premier</span>' : '';
-        const label = estNul ? 'Sans bœuf assigné' : `Bœuf #${bn}${info.nom ? ' (' + info.nom + ')' : ''}${dateTxt}`;
-        return `<div class="beef-subhead">🐂 ${label} · ${sous.length} paquet${sous.length>1?'s':''} ${prio}</div>`
-             + sous.map((item, i) => itemRow(item, i + 1)).join('');
-      }).join('');
-    } else {
-      itemsHtml = g.map((item, i) => itemRow(item, i + 1)).join('');
-    }
-
-    return `
-    <div class="stock-cut">
+    return `<div class="stock-cut">
       <button class="stock-cut-head" onclick="toggleCut(this)">
         <span class="stock-cut-chevron">▸</span>
         <span class="stock-cut-name">${coupe}</span>
@@ -2045,7 +2042,7 @@ function renderLocalStock(items) {
       </button>
       <div class="stock-cut-items" style="display:none">
         ${marcheLigne}
-        <button class="cut-rename" onclick="renommerCoupeUI('${key.replace(/'/g, '’')}', '${cId}')">✎ Renommer toute la coupe « ${coupe} »</button>
+        <button class="cut-rename" onclick="renommerCoupeUI('${key.replace(/'/g, '’')}', '${cId}')">✎ Renommer « ${coupe} »</button>
         ${itemsHtml}
       </div>
     </div>`;
