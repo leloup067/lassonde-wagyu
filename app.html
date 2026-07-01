@@ -281,8 +281,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
    STOCK
 ════════════════════ */
 #panel-stock{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
-/* Pied de page global : marque + gros espace en bas pour que les menus déroulants
-   puissent s'ouvrir sans être coupés par la barre du bas (injecté sur chaque page scrollable) */
+/* Pied de page global : marque + espace en bas. Le wrapper .panel-inner (min-height:100%)
+   pousse le pied de page tout en bas SANS casser le défilement quand une liste s'ouvre.
+   Les 4 onglets scrollables passent en display:block pour que le min-height:100% soit fiable. */
+#panel-stock.active,#panel-troupeau.active,#panel-verif.active,#panel-vente.active{display:block}
+.panel-inner{display:flex;flex-direction:column;min-height:100%}
 .app-footer{text-align:center;font-family:Georgia,serif;font-size:13px;color:var(--gold);opacity:.45;
   letter-spacing:.5px;margin-top:auto;padding-top:16px;border-top:1px solid var(--border);
   padding-bottom:8px}
@@ -2426,17 +2429,22 @@ function renderTroupeau() {
   body.innerHTML = html;
 }
 
-// Pied de page « Les Élevages Lassonde » + gros espace en bas, ajouté une fois à chaque
-// page scrollable. Garantit que les menus déroulants du bas ne sont jamais coupés par la nav.
+// Enveloppe le contenu de chaque page scrollable dans un .panel-inner (min-height:100%)
+// puis ajoute le pied de page. Le pied de page descend tout en bas de la liste sans casser
+// le défilement quand une liste déroulante s'ouvre (contrairement à margin-top:auto sur le
+// conteneur scrollable directement, qui empêchait d'atteindre le bas de la liste sur mobile).
 function ajouterPiedsDePage() {
   ['panel-stock', 'panel-troupeau', 'panel-verif', 'panel-vente'].forEach(id => {
     const p = document.getElementById(id);
-    if (p && !p.querySelector(':scope > .app-footer')) {
-      const f = document.createElement('div');
-      f.className = 'app-footer';
-      f.textContent = 'Les Élevages Lassonde';
-      p.appendChild(f);
-    }
+    if (!p || p.querySelector(':scope > .panel-inner')) return;
+    const inner = document.createElement('div');
+    inner.className = 'panel-inner';
+    while (p.firstChild) inner.appendChild(p.firstChild);   // déplace tout le contenu existant
+    const f = document.createElement('div');
+    f.className = 'app-footer';
+    f.textContent = 'Les Élevages Lassonde';
+    inner.appendChild(f);
+    p.appendChild(inner);
   });
 }
 
