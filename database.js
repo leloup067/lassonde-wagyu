@@ -74,7 +74,7 @@ try {
 } catch (_) { /* colonne existe déjà */ }
 
 // Migrations betes → module Troupeau (bêtes vivantes + frigo)
-// tag = numéro de boucle d'oreille (Agri-Traçabilité Québec / MAPAQ)
+// tag = numéro de boucle d'oreille MAPAQ
 const MIGRATIONS_BETES = [
   `ALTER TABLE betes ADD COLUMN tag TEXT`,
   `ALTER TABLE betes ADD COLUMN nom TEXT`,

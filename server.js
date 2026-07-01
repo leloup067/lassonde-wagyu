@@ -227,7 +227,7 @@ app.post('/api/scan-liste-betes', async (req, res) => {
     if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ ok: false, error: 'Clé Anthropic manquante' });
 
     const REGISTRE_PROMPT = `Tu analyses la photo d'un REGISTRE DE TROUPEAU bovin québécois (liste des animaux vivants d'une ferme — Les Élevages Lassonde).
-Chaque ligne = un animal, identifié par son tag ATQ (boucle d'oreille Agri-Traçabilité Québec, souvent 15 chiffres commençant par 124).
+Chaque ligne = un animal, identifié par son tag (boucle d'oreille MAPAQ, souvent 15 chiffres commençant par 124).
 Si l'image ne contient PAS une liste d'animaux, réponds {"liste":false}.
 Sinon, réponds UNIQUEMENT avec ce JSON (sans texte avant ni après) :
 {
@@ -241,7 +241,7 @@ Règles :
 - type : "bœuf", "veau" ou "vache" — déduis du sexe/catégorie si présent (mâle/bouvillon → bœuf, femelle → vache), sinon null.
 - date_naissance convertie en YYYY-MM-DD. null si absente ou illisible.
 - poids_vif_kg : nombre en kg. null si absent. Ne devine JAMAIS un chiffre.
-- Garde les tags ATQ EXACTEMENT comme écrits (chiffres et espaces).`;
+- Garde les tags EXACTEMENT comme écrits (chiffres et espaces).`;
 
     const result = await new Promise((resolve, reject) => {
       const body = JSON.stringify({

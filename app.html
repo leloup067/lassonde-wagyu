@@ -1092,7 +1092,7 @@ button,label[for],[role=button]{cursor:pointer}
       <button class="import-opt" id="btn-import-csv">
         <span class="import-opt-icon">📎</span>
         <span class="import-opt-label">Fichier CSV</span>
-        <small>Export Excel / ATQ — colonnes : tag, naissance, poids, type…</small>
+        <small>Export Excel — colonnes : tag, naissance, poids, type…</small>
       </button>
       <button id="btn-import-close">Annuler</button>
     </div>
@@ -2558,7 +2558,7 @@ async function importerPagePhoto(file) {
   }
 }
 
-// Fichier CSV (export Excel / ATQ) — mapping souple des colonnes
+// Fichier CSV (export Excel) — mapping souple des colonnes
 function parseCSVBetes(text) {
   const lignes = text.split(/\r?\n/).filter(l => l.trim());
   if (lignes.length < 2) return [];
