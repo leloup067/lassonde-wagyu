@@ -292,9 +292,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 #panel-troupeau{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
 #panel-verif{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
 #vente-idle,#vente-match{min-height:0}
-#stock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+#stock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
 #stock-title{font-size:16px}
-#stock-header-btns{display:flex;gap:8px}
+#stock-header-btns{display:flex;gap:8px;flex-wrap:wrap}
 #btn-prix-marche{background:rgba(200,169,110,.1);border:1px solid var(--border);border-radius:8px;
   color:var(--gold);padding:8px 12px;font-family:sans-serif;font-size:12px;min-height:36px}
 #btn-prix-marche:active{border-color:var(--gold)}
@@ -302,9 +302,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 #btn-ajouter-inventaire{background:var(--gold);border:none;border-radius:8px;color:#0a0a0a;
   padding:8px 12px;font-family:sans-serif;font-size:12px;font-weight:700;min-height:36px}
 #btn-ajouter-inventaire:active{opacity:.85}
-#btn-retour-stock{background:none;border:1px solid var(--border);border-radius:8px;color:var(--gold);
-  font-family:sans-serif;font-size:12px;padding:7px 14px;margin-bottom:14px}
-#btn-retour-stock:active{opacity:.7}
+#btn-verifier-commande{background:rgba(200,169,110,.1);border:1px solid var(--border);border-radius:8px;
+  color:var(--gold);padding:8px 12px;font-family:sans-serif;font-size:12px;min-height:36px}
+#btn-verifier-commande:active{border-color:var(--gold)}
+#btn-retour-stock,#btn-retour-stock-verif{background:none;border:1px solid var(--border);border-radius:8px;
+  color:var(--gold);font-family:sans-serif;font-size:12px;padding:7px 14px;margin-bottom:14px}
+#btn-retour-stock:active,#btn-retour-stock-verif:active{opacity:.7}
 .cut-marche{font-family:sans-serif;font-size:11.5px;color:#8cb6ff;padding:4px 0 8px}
 .cut-marche strong{color:#aecbff}
 .cut-marche .ecart-haut{color:#7fd494}
@@ -873,6 +876,7 @@ button,label[for],[role=button]{cursor:pointer}
         <span id="stock-title">Inventaire en direct</span>
         <div id="stock-header-btns">
           <button id="btn-ajouter-inventaire" onclick="switchTab('scanner')" aria-label="Ajouter de l'inventaire en scannant">📷 Ajouter</button>
+          <button id="btn-verifier-commande" onclick="switchTab('verif')" aria-label="Vérifier une commande">✓ Vérifier</button>
           <button id="btn-prix-marche" aria-label="Rafraîchir les prix du marché">💡 Marché</button>
           <button id="btn-refresh" aria-label="Actualiser l'inventaire">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -911,6 +915,8 @@ button,label[for],[role=button]{cursor:pointer}
 
     <!-- ══ VÉRIF COMMANDE ══ -->
     <div id="panel-verif" class="panel">
+      <!-- Retour au stock (Vérif n'est plus un onglet, il s'ouvre depuis Stock) -->
+      <button id="btn-retour-stock-verif" onclick="switchTab('stock')" aria-label="Retour à l'inventaire">← Inventaire</button>
       <!-- Étape 1 : pas encore de liste -->
       <div id="verif-idle">
         <div class="verif-intro">
@@ -1028,14 +1034,6 @@ button,label[for],[role=button]{cursor:pointer}
           <circle cx="14.3" cy="6.5" r=".7" fill="currentColor" stroke="none"/>
         </svg>
       </span>Troupeau
-    </button>
-    <button class="tab" data-tab="verif" role="tab" aria-selected="false" aria-controls="panel-verif">
-      <span class="tab-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M9 11l3 3L22 4"/>
-          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-        </svg>
-      </span>Vérif
     </button>
     <button class="tab" data-tab="vente" role="tab" aria-selected="false" aria-controls="panel-vente">
       <span class="tab-icon">
