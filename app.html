@@ -798,7 +798,7 @@ button,label[for],[role=button]{cursor:pointer}
           <div class="card-group-title">Traçabilité</div>
           <div class="field"><label>Date scannée</label>
             <input type="date" id="f-mb" disabled style="opacity:.7"></div>
-          <div class="field"><label>Bête (tag ATQ)</label>
+          <div class="field"><label>Bête (tag)</label>
             <select id="f-bete"><option value="">— aucune —</option></select></div>
         </div>
       </div>
@@ -877,7 +877,7 @@ button,label[for],[role=button]{cursor:pointer}
           <button id="btn-add-bete" aria-label="Ajouter une bête">＋ Ajouter</button>
         </div>
       </div>
-      <input type="search" id="troupeau-search" placeholder="Chercher : tag ATQ, numéro, nom…" aria-label="Chercher une bête">
+      <input type="search" id="troupeau-search" placeholder="Chercher : tag, numéro, nom…" aria-label="Chercher une bête">
       <div id="troupeau-body">
         <div class="empty-state"><div>🐂</div>Chargement du troupeau…</div>
       </div>
@@ -1125,7 +1125,7 @@ button,label[for],[role=button]{cursor:pointer}
       <div class="card-group-title">Identification</div>
       <div class="field"><label>Numéro de bête *</label>
         <input type="number" id="b-numero" min="1" placeholder="ex: 7"></div>
-      <div class="field"><label>Tag ATQ (boucle d'oreille)</label>
+      <div class="field"><label>Tag (boucle d'oreille)</label>
         <input type="text" id="b-tag" placeholder="ex: 124 000 312 456 789"></div>
       <div class="field"><label>Nom (optionnel)</label>
         <input type="text" id="b-nom" placeholder="ex: Kuro"></div>
@@ -1710,7 +1710,7 @@ function remplirSelectBurstBete() {
   const frigo  = (S.troupeau || []).filter(b => b.statut === 'frigo');
   const autres = (S.troupeau || []).filter(b => b.statut !== 'frigo' && b.statut !== 'vendu');
   sel.innerHTML = '<option value="">— aucune —</option>'
-    + frigo.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · frigo${b.tag_atq ? ' · ' + b.tag_atq : ''}</option>`).join('')
+    + frigo.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · frigo${b.tag ? ' · ' + b.tag : ''}</option>`).join('')
     + autres.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · ${b.statut}</option>`).join('');
   if (current) sel.value = current;
 }
@@ -2144,7 +2144,7 @@ function renderBeteCard(b) {
   const vivant = b.statut === 'pâturage' || b.statut === 'abattoir';
 
   let meta = [];
-  if (b.tag_atq)        meta.push(`Tag ATQ <strong>${b.tag_atq}</strong>`);
+  if (b.tag)        meta.push(`Tag <strong>${b.tag}</strong>`);
   if (b.type)           meta.push(`<strong>${b.type}</strong>${b.race ? ' ' + b.race : ''}`);
   if (age !== null)     meta.push(`Âge <strong>${age} mois</strong>`);
   if (vivant && age !== null) {
@@ -2192,8 +2192,8 @@ function renderBeteCard(b) {
     </div>`;
   }
 
-  const id_principal = b.tag_atq ? `Tag ATQ ${b.tag_atq}` : `Bête #${b.numero_bete}`;
-  const id_secondaire = b.tag_atq ? `#${b.numero_bete}` : '';
+  const id_principal = b.tag ? `Tag ${b.tag}` : `Bête #${b.numero_bete}`;
+  const id_secondaire = b.tag ? `#${b.numero_bete}` : '';
   return `<div class="bete-card">
     <div class="bete-card-top">
       <div class="bete-id">${b.nom ? b.nom + ' · ' : ''}${id_principal}
@@ -2286,11 +2286,11 @@ function renderTroupeau() {
     return;
   }
 
-  // Filtre recherche : tag ATQ, numéro ou nom
+  // Filtre recherche : tag, numéro ou nom
   const q = normaliserCoupe($('troupeau-search').value);
   const filtre = q
     ? troupeau.filter(b =>
-        normaliserCoupe(b.tag_atq).includes(q) ||
+        normaliserCoupe(b.tag).includes(q) ||
         String(b.numero_bete).includes(q) ||
         normaliserCoupe(b.nom).includes(q))
     : troupeau;
@@ -2357,7 +2357,7 @@ function remplirSelectBetes() {
   const frigo = S.troupeau.filter(b => b.statut === 'frigo');
   const autres = S.troupeau.filter(b => b.statut !== 'frigo' && b.statut !== 'vendu');
   sel.innerHTML = '<option value="">— aucune —</option>'
-    + frigo.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · frigo${b.tag_atq ? ' · ' + b.tag_atq : ''}</option>`).join('')
+    + frigo.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · frigo${b.tag ? ' · ' + b.tag : ''}</option>`).join('')
     + autres.map(b => `<option value="${b.numero_bete}">#${b.numero_bete}${b.nom ? ' ' + b.nom : ''} · ${b.statut}</option>`).join('');
   if (current) sel.value = current;
 }
@@ -2450,7 +2450,7 @@ function ouvrirEditBete(numero) {
   if (!b) return;
   $('modal-bete-title').textContent = 'Modifier la bête #' + numero;
   $('b-numero').value = b.numero_bete; $('b-numero').disabled = true;
-  $('b-tag').value      = b.tag_atq || '';
+  $('b-tag').value      = b.tag || '';
   $('b-nom').value      = b.nom || '';
   $('b-type').value     = ['bœuf','veau','vache'].includes(b.type) ? b.type : 'bœuf';
   $('b-naissance').value = b.date_naissance || '';
@@ -2468,7 +2468,7 @@ async function sauverBete() {
   const enEdit = $('b-numero').disabled;
   const payload = {
     numero_bete:    numero,
-    tag_atq:        $('b-tag').value.trim()   || null,
+    tag:        $('b-tag').value.trim()   || null,
     nom:            $('b-nom').value.trim()   || null,
     type:           $('b-type').value,
     date_naissance: $('b-naissance').value    || null,
@@ -2518,7 +2518,7 @@ function renderImportPreview() {
   const MAX_AFFICHE = 60;
   $('import-rows').innerHTML = betes.slice(0, MAX_AFFICHE).map(b => `
     <div class="import-row">
-      <span class="import-row-tag">${b.tag_atq || b.nom || '(sans tag)'}</span>
+      <span class="import-row-tag">${b.tag || b.nom || '(sans tag)'}</span>
       <span class="import-row-detail">${[b.type, b.date_naissance, b.poids_vif_kg ? b.poids_vif_kg + ' kg' : null].filter(Boolean).join(' · ') || '—'}</span>
     </div>`).join('')
     + (betes.length > MAX_AFFICHE ? `<div class="import-row"><span class="import-row-detail">… et ${betes.length - MAX_AFFICHE} autres</span></div>` : '');
@@ -2544,9 +2544,9 @@ async function importerPagePhoto(file) {
       return;
     }
     // Dédoublonne par tag au sein de l'import (pages qui se chevauchent)
-    const tagsExistants = new Set(S.importBetes.map(b => (b.tag_atq || '').replace(/\s/g, '')));
+    const tagsExistants = new Set(S.importBetes.map(b => (b.tag || '').replace(/\s/g, '')));
     const nouvelles = d.result.betes.filter(b => {
-      const t = (b.tag_atq || '').replace(/\s/g, '');
+      const t = (b.tag || '').replace(/\s/g, '');
       return !t || !tagsExistants.has(t);
     });
     S.importBetes.push(...nouvelles);
@@ -2593,7 +2593,7 @@ function parseCSVBetes(text) {
   return lignes.slice(1).map(l => {
     const c = l.split(sep).map(v => v.replace(/^"|"$/g, '').trim());
     return {
-      tag_atq:        iTag   >= 0 ? c[iTag]   || null : null,
+      tag:        iTag   >= 0 ? c[iTag]   || null : null,
       nom:            iNom   >= 0 ? c[iNom]   || null : null,
       type:           iType  >= 0 ? convType(c[iType]) : 'bœuf',
       date_naissance: iNais  >= 0 ? convDate(c[iNais]) : null,
@@ -2602,7 +2602,7 @@ function parseCSVBetes(text) {
       numero_bete:    iNum   >= 0 ? parseInt(c[iNum]) || null : null,
       notes:          iNotes >= 0 ? c[iNotes] || null : null,
     };
-  }).filter(b => b.tag_atq || b.nom || b.numero_bete);
+  }).filter(b => b.tag || b.nom || b.numero_bete);
 }
 
 function importerFichierCSV(file) {

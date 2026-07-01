@@ -74,9 +74,9 @@ try {
 } catch (_) { /* colonne existe déjà */ }
 
 // Migrations betes → module Troupeau (bêtes vivantes + frigo)
-// tag_atq = numéro de boucle d'oreille ATQ (Agri-Traçabilité Québec / MAPAQ)
+// tag = numéro de boucle d'oreille (Agri-Traçabilité Québec / MAPAQ)
 const MIGRATIONS_BETES = [
-  `ALTER TABLE betes ADD COLUMN tag_atq TEXT`,
+  `ALTER TABLE betes ADD COLUMN tag TEXT`,
   `ALTER TABLE betes ADD COLUMN nom TEXT`,
   `ALTER TABLE betes ADD COLUMN type TEXT DEFAULT 'bœuf'`,
   `ALTER TABLE betes ADD COLUMN date_naissance TEXT`,
@@ -86,10 +86,15 @@ const MIGRATIONS_BETES = [
   `ALTER TABLE betes ADD COLUMN poids_carcasse_kg REAL`,
   `ALTER TABLE betes ADD COLUMN notes TEXT`,
   `ALTER TABLE betes ADD COLUMN date_envoi_abattage TEXT`,
+  `ALTER TABLE betes ADD COLUMN nombre_naissances INTEGER DEFAULT 0`,
+  `ALTER TABLE betes ADD COLUMN nombre_enfants_morts INTEGER DEFAULT 0`,
+  `ALTER TABLE betes ADD COLUMN date_derniere_naissance TEXT`,
 ];
 for (const m of MIGRATIONS_BETES) {
   try { db.exec(m); } catch (_) { /* colonne existe déjà */ }
 }
+// Migration: copier tag_atq → tag (renommage du champ)
+try { db.exec(`UPDATE betes SET tag = tag_atq WHERE tag IS NULL AND tag_atq IS NOT NULL`); } catch (_) { /* déjà fait */ }
 // Statut legacy 'en cours' → 'pâturage' (nouveau vocabulaire troupeau)
 db.exec(`UPDATE betes SET statut = 'pâturage' WHERE statut = 'en cours' OR statut IS NULL`);
 
@@ -313,12 +318,12 @@ function getResume() {
 // ─── BÊTES ────────────────────────────────────────────────────────────────────
 function upsertBete(data) {
   db.prepare(`
-    INSERT INTO betes (numero_bete, tag_atq, nom, type, date_naissance, poids_vif_kg,
+    INSERT INTO betes (numero_bete, tag, nom, type, date_naissance, poids_vif_kg,
       race, date_livraison, cout_elevage, date_abattage, poids_carcasse_kg, notes, statut)
-    VALUES (@numero_bete, @tag_atq, @nom, @type, @date_naissance, @poids_vif_kg,
+    VALUES (@numero_bete, @tag, @nom, @type, @date_naissance, @poids_vif_kg,
       @race, @date_livraison, @cout_elevage, @date_abattage, @poids_carcasse_kg, @notes, @statut)
     ON CONFLICT(numero_bete) DO UPDATE SET
-      tag_atq           = COALESCE(excluded.tag_atq, tag_atq),
+      tag               = COALESCE(excluded.tag, tag),
       nom               = COALESCE(excluded.nom, nom),
       type              = COALESCE(excluded.type, type),
       date_naissance    = COALESCE(excluded.date_naissance, date_naissance),
@@ -332,7 +337,7 @@ function upsertBete(data) {
       statut            = excluded.statut
   `).run({
     numero_bete:       data.numero_bete != null ? data.numero_bete : 1,  // permet le bœuf #0
-    tag_atq:           data.tag_atq           || null,
+    tag:               data.tag               || null,
     nom:               data.nom               || null,
     type:              data.type              || 'bœuf',
     date_naissance:    data.date_naissance    || null,
@@ -351,29 +356,32 @@ function upsertBete(data) {
 // Import en masse (liste papier scannée ou CSV) — transaction unique
 function importerBetes(rows) {
   let maxNum = db.prepare('SELECT COALESCE(MAX(numero_bete), 0) AS m FROM betes').get().m;
-  const existeTag = db.prepare('SELECT 1 FROM betes WHERE tag_atq = ?');
+  const existeTag = db.prepare('SELECT 1 FROM betes WHERE tag = ?');
   const existeNum = db.prepare('SELECT 1 FROM betes WHERE numero_bete = ?');
   const insert = db.prepare(`
-    INSERT INTO betes (numero_bete, tag_atq, nom, type, date_naissance, poids_vif_kg, race, notes, statut)
-    VALUES (@numero_bete, @tag_atq, @nom, @type, @date_naissance, @poids_vif_kg, @race, @notes, 'pâturage')
+    INSERT INTO betes (numero_bete, tag, nom, type, date_naissance, poids_vif_kg, race, notes, statut, nombre_naissances, nombre_enfants_morts, date_derniere_naissance)
+    VALUES (@numero_bete, @tag, @nom, @type, @date_naissance, @poids_vif_kg, @race, @notes, 'pâturage', @nombre_naissances, @nombre_enfants_morts, @date_derniere_naissance)
   `);
   let ajouts = 0, doublons = 0;
   db.transaction(() => {
     for (const r of rows) {
-      const tag = (r.tag_atq || '').toString().trim() || null;
+      const tag = (r.tag || r.tag_atq || '').toString().trim() || null;
       if (tag && existeTag.get(tag)) { doublons++; continue; }
       let num = parseInt(r.numero_bete) || 0;
       if (!num || existeNum.get(num)) num = ++maxNum;
       else maxNum = Math.max(maxNum, num);
       insert.run({
-        numero_bete:    num,
-        tag_atq:        tag,
-        nom:            (r.nom   || '').toString().trim().slice(0, 80)  || null,
-        type:           ['bœuf', 'veau', 'vache'].includes(r.type) ? r.type : 'bœuf',
-        date_naissance: (r.date_naissance || '').toString().trim().slice(0, 10) || null,
-        poids_vif_kg:   parseFloat(r.poids_vif_kg) || null,
-        race:           (r.race  || '').toString().trim().slice(0, 60)  || 'Wagyu',
-        notes:          (r.notes || '').toString().trim().slice(0, 200) || null,
+        numero_bete:              num,
+        tag:                      tag,
+        nom:                      (r.nom   || '').toString().trim().slice(0, 80)  || null,
+        type:                     ['bœuf', 'veau', 'vache'].includes(r.type) ? r.type : 'bœuf',
+        date_naissance:           (r.date_naissance || '').toString().trim().slice(0, 10) || null,
+        poids_vif_kg:             parseFloat(r.poids_vif_kg) || null,
+        race:                     (r.race  || '').toString().trim().slice(0, 60)  || 'Wagyu',
+        notes:                    (r.notes || '').toString().trim().slice(0, 200) || null,
+        nombre_naissances:        parseInt(r.nombre_naissances) || 0,
+        nombre_enfants_morts:     parseInt(r.nombre_enfants_morts) || 0,
+        date_derniere_naissance:  (r.date_derniere_naissance || '').toString().trim().slice(0, 10) || null,
       });
       ajouts++;
     }
@@ -531,11 +539,11 @@ function getVentes(limit = 50) {
 }
 
 // Stats de reproduction pour une vache : nombre de veaux vivants et morts
-function getStatsVache(tag_atq) {
-  if (!tag_atq) return { vivants: 0, morts: 0 };
+function getStatsVache(tag) {
+  if (!tag) return { vivants: 0, morts: 0 };
 
   // Chercher tous les descendants (notes contient "Mère: TAG")
-  const pattern = `Mère: ${tag_atq}`;
+  const pattern = `Mère: ${tag}`;
   const all = db.prepare(`
     SELECT notes FROM betes
     WHERE notes LIKE ? AND type IN ('veau', 'bœuf')

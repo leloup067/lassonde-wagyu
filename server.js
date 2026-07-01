@@ -169,14 +169,14 @@ app.get('/api/troupeau', (req, res) => {
     // Ajouter les stats de reproduction à chaque vache
     const troupeauAvecStats = troupeau.map(b => ({
       ...b,
-      ...(b.type === 'vache' && b.tag_atq ? statsVaches[b.tag_atq] || { vivants: 0, morts: 0 } : {})
+      ...(b.type === 'vache' && b.tag ? statsVaches[b.tag] || { vivants: 0, morts: 0 } : {})
     }));
     res.json({ ok: true, troupeau: troupeauAvecStats });
   }
   catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
-// Créer / mettre à jour une bête (tag ATQ, naissance, poids vif, etc.)
+// Créer / mettre à jour une bête (tag, naissance, poids vif, etc.)
 app.post('/api/troupeau', (req, res) => {
   try {
     const d = req.body;
@@ -233,7 +233,7 @@ Sinon, réponds UNIQUEMENT avec ce JSON (sans texte avant ni après) :
 {
   "liste": true,
   "betes": [
-    { "tag_atq": "124000312456789", "nom": null, "type": "bœuf", "date_naissance": "2024-02-10", "poids_vif_kg": 615, "race": "Wagyu", "notes": null }
+    { "tag": "124000312456789", "nom": null, "type": "bœuf", "date_naissance": "2024-02-10", "poids_vif_kg": 615, "race": "Wagyu", "notes": null }
   ]
 }
 Règles :

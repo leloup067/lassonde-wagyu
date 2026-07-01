@@ -55,9 +55,17 @@
 - VÉRIF COMMANDE: client photographie sa liste de découpe (/api/scan-liste Claude vision) → checklist → scanne chaque morceau → pointage auto fuzzy (coupe+poids) → progression + poids total + valeur totale — persist localStorage
 - Scanner: champ "Bête (tag ATQ)" lie chaque sac scanné à une bête
 - IMPORT TROUPEAU EN MASSE: photo registre papier (vision multi-pages) ou CSV — doublons tag ATQ ignorés — recherche tag/numéro/nom — /api/troupeau/import + /api/scan-liste-betes
+- VENTE: onglet Vente — scanner l'étiquette d'un morceau vendu → /api/vente/chercher trouve le sac (coupe + poids le plus proche) → confirmer → marque vendu (sort du stock) + date + bête → historique /api/ventes
+- INVENTAIRE replié par coupe (accordéon): 1 ligne/coupe (count+poids+valeur), clic pour dérouler les paquets numérotés FIFO. Limite levée à 10000 (affiche tout).
+- PERSISTANCE: DB sur disque Railway (RAILWAY_VOLUME_MOUNT_PATH=/data). Volume 'lassonde-app-volume' attaché → données permanentes. backup-prod.js sauvegarde tout.
 - SCAN EN RAFALE: scanne plusieurs étiquettes d'affilée (Photo suivante × N ou galerie multi-select) → analyse en lot (concurrence 2) → écran de révision éditable par carte (coupe/poids/total/date) → bête optionnelle pour tout le lot → Tout confirmer. Vues view-burst-capture + view-burst-review.
 
+- PHOTOS: photo de chaque scan sauvegardée sur disque (/data/photos/<id>.jpg, colonne inventaire.photo) + bouton 📷 dans le stock pour revoir
+- PRIX MARCHÉ: bouton '💡 Marché' (Stock) → POST /api/prix-marche/rafraichir (Claude web search) → prix suggéré CAD/kg par coupe (table prix_suggere) + écart vs prix actuel. On-demand.
+- STOCK: doublons fusionnés par coupeKey (casse/accents/œ/'de boeuf wagyu'). Bête #0 'Bœuf test' = tous les sacs du 1er test réel.
+
 ## FEATURES À FAIRE ❌
+- Liste de produits + matching auto photo→produit (vraie solution future quand il y aura une liste de découpe)
 - Mode stock caché / drops contrôlés (Shopify status=draft)
 - Système pré-commandes
 - Dashboard profit par bête (coût élevage vs revenus réels — partiellement fait via /api/troupeau/:n/rapport)

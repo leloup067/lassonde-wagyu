@@ -256,6 +256,8 @@ Source : Session 20 mai 2026 — validé avec étiquettes réelles
 - Prix figés par le boucher ou mis à jour à chaque bête?
 
 ## CHANGELOG
+- 2026-06-23 — [PHOTOS+MARCHÉ] Photos de scan sauvegardées sur disque persistant + bouton 📷 dans le stock. Stock: doublons de coupe fusionnés (casse/œ/'de boeuf wagyu'). Bouton '💡 Marché': recherche web Claude à la demande → prix suggéré CAD/kg par coupe + écart vs ton prix. Bœuf #0 'test' créé, 582 sacs rattachés. 'en étalage depuis [date]'. À FAIRE futur: liste de produits + matching auto photo→produit.
+- 2026-06-23 — [TEST RÉEL] 582 sacs scannés en prod, confirmés permanents (disque Railway /data). Inventaire replié par coupe + poids/valeur/coupe + FIFO numéroté + limite levée (10000). Rafale: bouton Confirmer collant. NOUVEL onglet VENTE: scanner pour vendre → sort du stock + date + bête + historique. Stock: bouton retirer un sac. Date scannée au lieu de meilleur-avant. Sauvegarde backup-prod-*.json.
 - 2026-05-19 14 h 40 — [RÉALITÉ OPÉRATIONNELLE] Ajout coût d'élevage par bœuf (4000$), question #4 marquée répondue
 - 2026-05-19 18 h 47 — [STACK TECHNIQUE] Diagnostic : 11 collections confirmées, Railway URL ajoutée, server.js /health + CORS ajoutés
 - 2026-05-19 19 h 08 — [STACK TECHNIQUE] Base SQLite créée : inventaire + bêtes + ventes + prix_marche. Agent lit DB en temps réel. Tab Stock → /api/inventaire.
