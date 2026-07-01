@@ -691,6 +691,16 @@ button,label[for],[role=button]{cursor:pointer}
 .vente-row-info{font-size:14px;color:var(--text)}
 .vente-row-sub{font-family:sans-serif;font-size:11px;color:var(--muted);margin-top:2px}
 .vente-row-prix{font-size:14px;color:var(--green)}
+/* Ventes groupées par jour */
+.vente-jour{margin-bottom:22px}
+.vente-jour-tete{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.vente-jour-date{font-family:sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--gold)}
+.vente-jour-total{font-size:16px;color:var(--gold);font-weight:700}
+.vente-jour-caisse{display:flex;gap:10px;margin-bottom:10px}
+.vente-jour-caisse span{flex:1;font-family:sans-serif;font-size:12px;color:var(--muted);
+  background:rgba(200,169,110,.07);border:1px solid var(--border);border-radius:8px;padding:7px 10px;text-align:center}
+.vente-jour-caisse strong{color:var(--text);font-size:13px}
 #verif-analyze-status{display:flex;flex-direction:column;align-items:center;gap:18px;
   padding:60px 20px;font-family:sans-serif;font-size:13px;color:var(--muted)}
 #verif-progress-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
@@ -1147,10 +1157,11 @@ button,label[for],[role=button]{cursor:pointer}
       <div class="field"><label>Nom (optionnel)</label>
         <input type="text" id="b-nom" placeholder="ex: Kuro"></div>
       <div class="field"><label>Type</label>
-        <select id="b-type">
+        <select id="b-type" onchange="majVacheGroup()">
           <option value="bœuf">Bœuf</option>
           <option value="veau">Veau</option>
           <option value="vache">Vache</option>
+          <option value="taureau">Taureau</option>
         </select></div>
       <div class="field" id="b-statut-field" style="display:none"><label>État</label>
         <select id="b-statut">
@@ -1170,6 +1181,15 @@ button,label[for],[role=button]{cursor:pointer}
         <input type="text" id="b-race" value="Wagyu"></div>
       <div class="field"><label>Notes</label>
         <input type="text" id="b-notes" placeholder="ex: lot 2024-B, génétique Tajima"></div>
+    </div>
+    <div class="card-group" id="b-vache-group" style="display:none">
+      <div class="card-group-title">Reproduction (vache)</div>
+      <div class="field"><label>Nombre de naissances (total, vivants + morts)</label>
+        <input type="number" id="b-naissances" min="0" step="1" placeholder="ex: 4"></div>
+      <div class="field"><label>Bébés morts</label>
+        <input type="number" id="b-morts" min="0" step="1" placeholder="ex: 1"></div>
+      <div class="field"><label>Dernière naissance</label>
+        <input type="date" id="b-derniere-naissance"></div>
     </div>
     <div id="modal-bete-btns">
       <button id="btn-bete-cancel">Annuler</button>
@@ -1242,7 +1262,7 @@ const S = {
   products:     [],   // cache inventaire Shopify
   chatHistory:  [],
   burst:        [],   // lot en cours : {id, dataUrl, base64, etat, result}
-  triTroupeau:  { vache: 'age', 'bœuf': 'age', veau: 'age' },  // tri par sous-section
+  triTroupeau:  { vache: 'age', 'bœuf': 'age', veau: 'age', taureau: 'age' },  // tri par sous-section
 };
 let burstSeq = 0;
 
@@ -2212,9 +2232,14 @@ function renderBeteCard(b) {
   const details = detailsInner ? `<div class="bete-details" hidden>${detailsInner}</div>` : '';
   const menuBtn = detailsInner ? `<button class="bete-del" onclick="toggleBeteDetails(this)" aria-label="Détails">⋯</button>` : '';
 
-  // Actions — pas d'envoi à l'abattage pour les vaches
+  // Actions — pas d'envoi à l'abattage pour les reproducteurs (vaches/taureaux)
   let actions = '';
-  if (b.statut === 'pâturage' && !estReproducteur) {
+  if (b.statut === 'pâturage' && b.type === 'taureau') {
+    // Un taureau est éventuellement vendu (trop de descendance → risque de consanguinité)
+    actions = `<div class="bete-actions">
+      <button class="primary" onclick="vendreReproducteur(${b.numero_bete}, '${(b.tag || b.nom || 'ce taureau').replace(/'/g, '’')}')">💰 Vendu / sorti du pâturage</button>
+    </div>`;
+  } else if (b.statut === 'pâturage' && !estReproducteur) {
     actions = `<div class="bete-actions">
       <button class="primary" onclick="changerStatutBete(${b.numero_bete}, 'abattoir')">🚚 Envoyer à l'abattage</button>
     </div>`;
@@ -2279,9 +2304,9 @@ const TRIS_TROUPEAU = {
     { key: 'enfants',   label: 'Plus d’enfants' },
     { key: 'morts',     label: 'Plus d’enfants morts' },
   ],
-  'bœuf':   [ { key: 'age', label: 'Âge : vieux → jeune' } ],
-  veau:     [ { key: 'age', label: 'Âge : vieux → jeune' } ],
-  taureau:  [ { key: 'age', label: 'Âge : vieux → jeune' } ],
+  'bœuf':   [ { key: 'age', label: 'Âge : vieux → jeune' }, { key: 'age_jeune', label: 'Âge : jeune → vieux' } ],
+  veau:     [ { key: 'age', label: 'Âge : vieux → jeune' }, { key: 'age_jeune', label: 'Âge : jeune → vieux' } ],
+  taureau:  [ { key: 'age', label: 'Âge : vieux → jeune' }, { key: 'age_jeune', label: 'Âge : jeune → vieux' } ],
 };
 
 function trierBetes(betes, type) {
@@ -2291,7 +2316,8 @@ function trierBetes(betes, type) {
   // Pour les autres types, une bête sans date est rejetée à la fin.
   const sentinelle = (type === 'vache' || type === 'taureau') ? '0000-00-00' : '9999-99-99';
   const dateOrd = b => b.date_naissance || sentinelle;
-  if (tri === 'enfants')        arr.sort((a, b) => (b.nombre_naissances || 0) - (a.nombre_naissances || 0));
+  const bebesVivants = b => Math.max(0, (b.nombre_naissances || 0) - (b.nombre_enfants_morts || 0));
+  if (tri === 'enfants')        arr.sort((a, b) => bebesVivants(b) - bebesVivants(a));  // bébés VIVANTS seulement
   else if (tri === 'morts')     arr.sort((a, b) => (b.nombre_enfants_morts || 0) - (a.nombre_enfants_morts || 0));
   else if (tri === 'age_jeune') arr.sort((a, b) => dateOrd(b).localeCompare(dateOrd(a)));  // jeune → vieux (sans date = vieilles, en dernier)
   else                          arr.sort((a, b) => dateOrd(a).localeCompare(dateOrd(b)));  // âge : vieux → jeune
@@ -2323,7 +2349,7 @@ function renderTroupeauSubSection(type, betes) {
   </div>`;
 }
 
-function renderTroupeauSection(titre, emoji, betes) {
+function renderTroupeauSection(titre, emoji, betes, collapsed) {
   if (!betes.length) return '';
 
   // Grouper par type si c'est le pâturage/abattoir (vivants)
@@ -2346,7 +2372,7 @@ function renderTroupeauSection(titre, emoji, betes) {
     html = betes.map(renderBeteCard).join('');
   }
 
-  return `<div class="troupeau-section">
+  return `<div class="troupeau-section${collapsed ? ' collapsed' : ''}">
     <div class="troupeau-section-title" onclick="toggleTroupeauSection(event)">
       <span class="troupeau-chevron">▸</span>
       <span>${emoji} ${titre} (${betes.length})</span>
@@ -2381,10 +2407,12 @@ function renderTroupeau() {
   const frigo   = filtre.filter(b => b.statut === 'frigo');
   const vendus  = filtre.filter(b => b.statut === 'vendu');
 
+  // Par défaut : pâturage fermé (grande liste), frigo ouvert. En recherche : tout ouvert.
+  const enRecherche = !!q;
   let html = '';
-  html += renderTroupeauSection('En pâturage', '🌿', vivants);
-  html += renderTroupeauSection('Au frigo — prêt à manger', '❄️', frigo);
-  html += renderTroupeauSection('Vendus', '📦', vendus);
+  html += renderTroupeauSection('En pâturage', '🌿', vivants, !enRecherche);
+  html += renderTroupeauSection('Au frigo — prêt à manger', '❄️', frigo, false);
+  html += renderTroupeauSection('Vendus', '📦', vendus, !enRecherche);
   body.innerHTML = html;
 
   // Ouvrir automatiquement les sous-sections au chargement
@@ -2438,6 +2466,12 @@ async function changerStatutBete(numero, statut) {
     toast(`Bête #${numero} — ${libelle}`);
     loadTroupeau();
   } catch (e) { toast('Erreur : ' + e.message, 3200); }
+}
+
+// Vendre / sortir un reproducteur (taureau) du pâturage
+async function vendreReproducteur(numero, ident) {
+  if (!confirm(`Marquer ${ident} comme vendu / sorti du pâturage ?`)) return;
+  changerStatutBete(numero, 'vendu');
 }
 
 // Remplit le select "Bête" du formulaire scanner (bêtes au frigo en premier)
@@ -2524,18 +2558,24 @@ async function demarrerBeteScan() {
 }
 
 // Modal ajout bête
+// Affiche le groupe « Reproduction » seulement pour les vaches
+function majVacheGroup() {
+  $('b-vache-group').style.display = $('b-type').value === 'vache' ? '' : 'none';
+}
+
 function ouvrirModalBete() {
   const nums = (S.troupeau || []).map(b => b.numero_bete);
   $('modal-bete-title').textContent = 'Ajouter une bête';
   $('b-numero').value = nums.length ? Math.max(...nums) + 1 : 1;
   $('b-numero').disabled = false;
   $('b-statut-field').style.display = 'none';
-  ['b-tag','b-nom','b-naissance','b-poids','b-notes'].forEach(id => $(id).value = '');
+  ['b-tag','b-nom','b-naissance','b-poids','b-notes','b-naissances','b-morts','b-derniere-naissance'].forEach(id => $(id).value = '');
   $('b-type').value = 'bœuf'; $('b-race').value = 'Wagyu';
+  majVacheGroup();
   $('modal-bete').classList.add('show');
 }
 
-// Modifier une bête existante (nom, tag, état, etc.)
+// Modifier une bête existante (nom, tag, état, stats de reproduction, etc.)
 function ouvrirEditBete(numero) {
   const b = (S.troupeau || []).find(x => x.numero_bete === numero);
   if (!b) return;
@@ -2543,13 +2583,17 @@ function ouvrirEditBete(numero) {
   $('b-numero').value = b.numero_bete; $('b-numero').disabled = true;
   $('b-tag').value      = b.tag || '';
   $('b-nom').value      = b.nom || '';
-  $('b-type').value     = ['bœuf','veau','vache'].includes(b.type) ? b.type : 'bœuf';
+  $('b-type').value     = ['bœuf','veau','vache','taureau'].includes(b.type) ? b.type : 'bœuf';
   $('b-naissance').value = b.date_naissance || '';
   $('b-poids').value    = b.poids_vif_kg || '';
   $('b-race').value     = b.race || 'Wagyu';
   $('b-notes').value    = b.notes || '';
   $('b-statut').value   = b.statut || 'pâturage';
+  $('b-naissances').value = b.nombre_naissances != null ? b.nombre_naissances : '';
+  $('b-morts').value    = b.nombre_enfants_morts != null ? b.nombre_enfants_morts : '';
+  $('b-derniere-naissance').value = b.date_derniere_naissance || '';
   $('b-statut-field').style.display = '';
+  majVacheGroup();
   $('modal-bete').classList.add('show');
 }
 
@@ -2557,6 +2601,7 @@ async function sauverBete() {
   const numero = parseInt($('b-numero').value);
   if (!numero && numero !== 0) { toast('Numéro de bête requis', 2600); return; }
   const enEdit = $('b-numero').disabled;
+  const estVache = $('b-type').value === 'vache';
   const payload = {
     numero_bete:    numero,
     tag:        $('b-tag').value.trim()   || null,
@@ -2567,6 +2612,10 @@ async function sauverBete() {
     race:           $('b-race').value.trim()  || 'Wagyu',
     notes:          $('b-notes').value.trim() || null,
     statut:         enEdit ? $('b-statut').value : 'pâturage',
+    // Stats de reproduction (vaches) — envoyées seulement pour les vaches
+    nombre_naissances:       estVache && $('b-naissances').value !== '' ? parseInt($('b-naissances').value) : null,
+    nombre_enfants_morts:    estVache && $('b-morts').value !== ''       ? parseInt($('b-morts').value)      : null,
+    date_derniere_naissance: estVache ? ($('b-derniere-naissance').value || null) : null,
   };
   try {
     const r = await fetch('/api/troupeau', {
@@ -2922,6 +2971,16 @@ function showVenteView(name) {
   $('vente-analyzing').style.display = name === 'analyzing' ? '' : 'none';
 }
 
+// Formate un jour ISO (YYYY-MM-DD) en français lisible
+function formatJour(iso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || 'Date inconnue';
+  const mois = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+  const [y, m, dd] = iso.split('-');
+  const auj = todayISO();
+  if (iso === auj) return "Aujourd'hui";
+  return `${parseInt(dd)} ${mois[parseInt(m) - 1]} ${y}`;
+}
+
 async function loadVentesRecentes() {
   try {
     const r = await fetch('/api/ventes');
@@ -2930,15 +2989,42 @@ async function loadVentesRecentes() {
     const list = $('vente-recent-list');
     if (!ventes.length) { list.innerHTML = '<div class="empty-state" style="padding:18px"><div>—</div>Aucune vente pour l\'instant</div>'; return; }
     const payIcon = m => m === 'interac' ? '💳 Interac' : m === 'comptant' ? '💵 Comptant' : '';
-    list.innerHTML = ventes.map(v => `
-      <div class="vente-row">
-        <div>
-          <div class="vente-row-info">${v.coupe || '(?)'}${v.poids_kg ? ' · ' + v.poids_kg.toFixed(3) + ' kg' : ''}</div>
-          <div class="vente-row-sub">${(v.date_vente || '').slice(0,16)}${v.mode_paiement ? ' · ' + payIcon(v.mode_paiement) : ''}${v.numero_bete != null ? ' · bête #' + v.numero_bete : ''}</div>
+
+    // Regrouper les ventes par jour (date_vente = "YYYY-MM-DD ..."), plus récent en premier
+    const parJour = {};
+    ventes.forEach(v => {
+      const jour = (v.date_vente || '').slice(0, 10) || 'inconnu';
+      (parJour[jour] = parJour[jour] || []).push(v);
+    });
+    const jours = Object.keys(parJour).sort().reverse();
+
+    list.innerHTML = jours.map(jour => {
+      const vs = parJour[jour];
+      const somme = pred => vs.filter(pred).reduce((s, v) => s + (v.prix_vendu || 0), 0);
+      const total   = somme(() => true);
+      const cash    = somme(v => v.mode_paiement === 'comptant');
+      const interac = somme(v => v.mode_paiement === 'interac');
+      const rows = vs.map(v => `
+        <div class="vente-row">
+          <div>
+            <div class="vente-row-info">${v.coupe || '(?)'}${v.poids_kg ? ' · ' + v.poids_kg.toFixed(3) + ' kg' : ''}</div>
+            <div class="vente-row-sub">${(v.date_vente || '').slice(11,16)}${v.mode_paiement ? ' · ' + payIcon(v.mode_paiement) : ''}${v.numero_bete != null ? ' · bête #' + v.numero_bete : ''}</div>
+          </div>
+          <div class="vente-row-prix">${v.prix_vendu != null ? v.prix_vendu.toFixed(2) + ' $' : ''}</div>
+          <button class="vente-del" onclick="annulerVenteUI(${v.id}, '${(v.coupe || '').replace(/'/g, '’')}')" aria-label="Annuler cette vente">✕</button>
+        </div>`).join('');
+      return `<div class="vente-jour">
+        <div class="vente-jour-tete">
+          <span class="vente-jour-date">${formatJour(jour)}</span>
+          <span class="vente-jour-total">${total.toFixed(2)} $</span>
         </div>
-        <div class="vente-row-prix">${v.prix_vendu != null ? v.prix_vendu.toFixed(2) + ' $' : ''}</div>
-        <button class="vente-del" onclick="annulerVenteUI(${v.id}, '${(v.coupe || '').replace(/'/g, '’')}')" aria-label="Annuler cette vente">✕</button>
-      </div>`).join('');
+        <div class="vente-jour-caisse">
+          <span>💵 Comptant <strong>${cash.toFixed(2)} $</strong></span>
+          <span>💳 Interac <strong>${interac.toFixed(2)} $</strong></span>
+        </div>
+        ${rows}
+      </div>`;
+    }).join('');
   } catch (_) {}
 }
 

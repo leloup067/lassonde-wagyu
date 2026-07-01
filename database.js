@@ -319,9 +319,11 @@ function getResume() {
 function upsertBete(data) {
   db.prepare(`
     INSERT INTO betes (numero_bete, tag, nom, type, date_naissance, poids_vif_kg,
-      race, date_livraison, cout_elevage, date_abattage, poids_carcasse_kg, notes, statut)
+      race, date_livraison, cout_elevage, date_abattage, poids_carcasse_kg, notes, statut,
+      nombre_naissances, nombre_enfants_morts, date_derniere_naissance)
     VALUES (@numero_bete, @tag, @nom, @type, @date_naissance, @poids_vif_kg,
-      @race, @date_livraison, @cout_elevage, @date_abattage, @poids_carcasse_kg, @notes, @statut)
+      @race, @date_livraison, @cout_elevage, @date_abattage, @poids_carcasse_kg, @notes, @statut,
+      @nombre_naissances, @nombre_enfants_morts, @date_derniere_naissance)
     ON CONFLICT(numero_bete) DO UPDATE SET
       tag               = COALESCE(excluded.tag, tag),
       nom               = COALESCE(excluded.nom, nom),
@@ -334,7 +336,10 @@ function upsertBete(data) {
       date_abattage     = COALESCE(excluded.date_abattage, date_abattage),
       poids_carcasse_kg = COALESCE(excluded.poids_carcasse_kg, poids_carcasse_kg),
       notes             = COALESCE(excluded.notes, notes),
-      statut            = excluded.statut
+      statut            = excluded.statut,
+      nombre_naissances       = COALESCE(excluded.nombre_naissances, nombre_naissances),
+      nombre_enfants_morts    = COALESCE(excluded.nombre_enfants_morts, nombre_enfants_morts),
+      date_derniere_naissance = COALESCE(excluded.date_derniere_naissance, date_derniere_naissance)
   `).run({
     numero_bete:       data.numero_bete != null ? data.numero_bete : 1,  // permet le bœuf #0
     tag:               data.tag               || null,
@@ -349,6 +354,9 @@ function upsertBete(data) {
     poids_carcasse_kg: data.poids_carcasse_kg || null,
     notes:             data.notes             || null,
     statut:            data.statut            || 'pâturage',
+    nombre_naissances:       data.nombre_naissances       != null ? data.nombre_naissances       : null,
+    nombre_enfants_morts:    data.nombre_enfants_morts    != null ? data.nombre_enfants_morts    : null,
+    date_derniere_naissance: data.date_derniere_naissance || null,
   });
   return db.prepare('SELECT * FROM betes WHERE numero_bete = ?').get(data.numero_bete != null ? data.numero_bete : 1);
 }
