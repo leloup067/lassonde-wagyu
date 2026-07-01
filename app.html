@@ -2169,6 +2169,14 @@ function renderBeteCard(b) {
   if (b.tag)        meta.push(`Tag <strong>${b.tag}</strong>`);
   if (b.type)       meta.push(`<strong>${b.type}</strong>`);          // race retirée (tout est Wagyu)
   if (age !== null) meta.push(`Âge <strong>${age} mois</strong>`);
+  else if (estVache) meta.push(`Âge <strong>née avant 2023</strong>`);  // vaches sans date = plus vieilles
+  // Bébés vivants (naissances − morts) — visible directement sur la carte de la vache
+  if (estVache) {
+    const bebesTot = b.nombre_naissances != null ? b.nombre_naissances : ((b.vivants || 0) + (b.morts || 0));
+    const mortsTot = b.nombre_enfants_morts != null ? b.nombre_enfants_morts : (b.morts || 0);
+    const vivantsBebes = Math.max(0, bebesTot - mortsTot);
+    meta.push(`<strong>${vivantsBebes}</strong> bébé${vivantsBebes > 1 ? 's' : ''} vivant${vivantsBebes > 1 ? 's' : ''}`);
+  }
   // Les vaches sont rarement abattues → pas de compte à rebours ni « prêt pour l'abattage »
   if (vivant && age !== null && !estVache) {
     const restant = AGE_ABATTAGE_MOIS - age;
@@ -2278,7 +2286,10 @@ const TRIS_TROUPEAU = {
 function trierBetes(betes, type) {
   const tri = (S.triTroupeau && S.triTroupeau[type]) || 'age';
   const arr = betes.slice();
-  const dateOrd = b => b.date_naissance || '9999-99-99';   // sans date → rejeté à la fin
+  // Les vaches sans date sont les plus vieilles (nées avant le registre de 2023) → en premier.
+  // Pour les autres types, une bête sans date est rejetée à la fin.
+  const sentinelle = type === 'vache' ? '0000-00-00' : '9999-99-99';
+  const dateOrd = b => b.date_naissance || sentinelle;
   if (tri === 'enfants')     arr.sort((a, b) => (b.nombre_naissances || 0) - (a.nombre_naissances || 0));
   else if (tri === 'morts')  arr.sort((a, b) => (b.nombre_enfants_morts || 0) - (a.nombre_enfants_morts || 0));
   else                       arr.sort((a, b) => dateOrd(a).localeCompare(dateOrd(b)));  // âge : vieux → jeune
