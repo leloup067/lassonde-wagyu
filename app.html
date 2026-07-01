@@ -280,7 +280,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:Georgia
 /* ════════════════════
    STOCK
 ════════════════════ */
-#panel-stock{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;padding-bottom:80px}
+#panel-stock{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+/* Pied de page global : marque + gros espace en bas pour que les menus déroulants
+   puissent s'ouvrir sans être coupés par la barre du bas (injecté sur chaque page scrollable) */
+.app-footer{text-align:center;font-family:Georgia,serif;font-size:13px;color:var(--gold);opacity:.45;
+  letter-spacing:.5px;margin-top:34px;padding-top:18px;border-top:1px solid var(--border);
+  padding-bottom:calc(120px + env(safe-area-inset-bottom))}
 /* Vente : défilement fluide (sinon la liste des ventes déborde sans pouvoir descendre) */
 #panel-vente{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
 /* Défilement fluide pour TOUS les onglets (Troupeau, Vérif héritaient de overflow:hidden) */
@@ -518,6 +523,11 @@ button,label[for],[role=button]{cursor:pointer}
   text-transform:uppercase;color:var(--muted);margin:10px 0 6px;display:flex;align-items:center;
   gap:6px;cursor:pointer;user-select:none;opacity:.85}
 .troupeau-subsection-title:active{opacity:.6}
+.troupeau-subsection-lbl{flex:1}
+.tri-select{font-family:sans-serif;font-size:10px;text-transform:none;letter-spacing:0;
+  background:rgba(200,169,110,.1);color:var(--gold);border:1px solid var(--border);
+  border-radius:6px;padding:3px 6px;cursor:pointer;max-width:56%}
+.tri-select:active{border-color:var(--gold)}
 .troupeau-subsection.collapsed .troupeau-chevron{transform:rotate(-90deg)}
 .troupeau-subsection.collapsed .troupeau-betes{display:none}
 
@@ -1234,6 +1244,7 @@ const S = {
   products:     [],   // cache inventaire Shopify
   chatHistory:  [],
   burst:        [],   // lot en cours : {id, dataUrl, base64, etat, result}
+  triTroupeau:  { vache: 'age', 'bœuf': 'age', veau: 'age' },  // tri par sous-section
 };
 let burstSeq = 0;
 
@@ -2253,15 +2264,47 @@ function toggleTroupeauSection(e) {
   if (section) section.classList.toggle('collapsed');
 }
 
+// Options de tri par type. Bœufs/veaux : âge seulement. Vaches : âge + productivité + pertes.
+const TRIS_TROUPEAU = {
+  vache:  [
+    { key: 'age',     label: 'Âge : vieux → jeune' },
+    { key: 'enfants', label: 'Plus d’enfants' },
+    { key: 'morts',   label: 'Plus d’enfants morts' },
+  ],
+  'bœuf': [ { key: 'age', label: 'Âge : vieux → jeune' } ],
+  veau:   [ { key: 'age', label: 'Âge : vieux → jeune' } ],
+};
+
+function trierBetes(betes, type) {
+  const tri = (S.triTroupeau && S.triTroupeau[type]) || 'age';
+  const arr = betes.slice();
+  const dateOrd = b => b.date_naissance || '9999-99-99';   // sans date → rejeté à la fin
+  if (tri === 'enfants')     arr.sort((a, b) => (b.nombre_naissances || 0) - (a.nombre_naissances || 0));
+  else if (tri === 'morts')  arr.sort((a, b) => (b.nombre_enfants_morts || 0) - (a.nombre_enfants_morts || 0));
+  else                       arr.sort((a, b) => dateOrd(a).localeCompare(dateOrd(b)));  // âge : vieux → jeune
+  return arr;
+}
+
+function setTriTroupeau(type, key) {
+  S.triTroupeau[type] = key;
+  renderTroupeau();
+}
+
 function renderTroupeauSubSection(type, betes) {
   if (!betes.length) return '';
   const emojiType = { 'vache': '🐄', 'bœuf': '🐂', 'veau': '🐃' }[type] || '🐑';
   const labelType = { 'vache': 'Vaches', 'bœuf': 'Bœufs', 'veau': 'Veaux' }[type] || type;
-  const html = betes.map(renderBeteCard).join('');
+  const html = trierBetes(betes, type).map(renderBeteCard).join('');
+  const tris = TRIS_TROUPEAU[type] || [];
+  // Menu de tri seulement quand il y a plusieurs choix (vaches). stopPropagation : ne pas replier la section.
+  const triSel = tris.length > 1 ? `<select class="tri-select" onclick="event.stopPropagation()" onchange="setTriTroupeau('${type}', this.value)">
+      ${tris.map(t => `<option value="${t.key}" ${(S.triTroupeau[type] === t.key) ? 'selected' : ''}>${t.label}</option>`).join('')}
+    </select>` : '';
   return `<div class="troupeau-subsection">
     <div class="troupeau-subsection-title" onclick="toggleTroupeauSection(event)">
       <span class="troupeau-chevron">▸</span>
-      <span>${emojiType} ${labelType} (${betes.length})</span>
+      <span class="troupeau-subsection-lbl">${emojiType} ${labelType} (${betes.length})</span>
+      ${triSel}
     </div>
     <div class="troupeau-betes">${html}</div>
   </div>`;
@@ -2334,6 +2377,20 @@ function renderTroupeau() {
   setTimeout(() => {
     document.querySelectorAll('.troupeau-subsection').forEach(sec => sec.classList.remove('collapsed'));
   }, 0);
+}
+
+// Pied de page « Les Élevages Lassonde » + gros espace en bas, ajouté une fois à chaque
+// page scrollable. Garantit que les menus déroulants du bas ne sont jamais coupés par la nav.
+function ajouterPiedsDePage() {
+  ['panel-stock', 'panel-troupeau', 'panel-verif', 'panel-vente'].forEach(id => {
+    const p = document.getElementById(id);
+    if (p && !p.querySelector(':scope > .app-footer')) {
+      const f = document.createElement('div');
+      f.className = 'app-footer';
+      f.textContent = 'Les Élevages Lassonde';
+      p.appendChild(f);
+    }
+  });
 }
 
 async function loadTroupeau() {
@@ -3198,6 +3255,7 @@ $('chat-input').addEventListener('input', function () {
 
   updateCounter();
   showView('idle');
+  ajouterPiedsDePage();  // pied de page + espace bas sur chaque page scrollable
   switchTab('stock');   // Stock est l'écran d'accueil (le Scanner s'ouvre via « 📷 Ajouter »)
   appendMsg('agent', `Bonjour ! Je suis l'agent ${CLIENT_CONFIG.name}. Chargez le stock dans l'onglet Stock, puis posez-moi vos questions.`);
 
